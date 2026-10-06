@@ -1,0 +1,3 @@
+package com.nexuspc.catalog.dto;
+import java.math.BigDecimal; import java.time.Instant; import java.util.*;
+public record ProductResponse(Long id,String slug,String name,String brand,String categorySlug,String categoryName,String sku,String description,String shortDescription,List<ImageResponse> images,BigDecimal price,BigDecimal originalPrice,Integer discountPercent,String stockStatus,int stockCount,double rating,int reviewCount,String warranty,Map<String,String> specifications,Set<String> tags,boolean isFeatured,boolean isBestseller,boolean isNew,Instant createdAt,Instant updatedAt) { public record ImageResponse(String id,String url,String alt){} }

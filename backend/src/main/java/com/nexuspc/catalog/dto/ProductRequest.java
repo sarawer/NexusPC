@@ -1,0 +1,3 @@
+package com.nexuspc.catalog.dto;
+import jakarta.validation.constraints.*; import java.math.BigDecimal; import java.util.*;
+public record ProductRequest(@NotBlank @Pattern(regexp="[a-z0-9-]+") String slug,@NotBlank @Size(max=250) String name,@Size(max=120) String brand,@NotBlank String sku,@NotNull Long categoryId,String description,String shortDescription,List<ImageRequest> images,@NotNull @PositiveOrZero BigDecimal price,@PositiveOrZero BigDecimal originalPrice,@PositiveOrZero int stockCount,@DecimalMin("0") @DecimalMax("5") double rating,@PositiveOrZero int reviewCount,String warranty,Map<String,String> specifications,Set<String> tags,boolean featured,boolean bestseller,boolean isNew) {}
