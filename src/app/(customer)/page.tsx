@@ -7,6 +7,8 @@ export const metadata = {
   description: 'Buy laptops, PCs, components, and tech accessories from NexusPC with EMI, COD and delivery across Bangladesh.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function Home() {
   return (
     <div className="flex flex-col">

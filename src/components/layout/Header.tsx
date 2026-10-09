@@ -14,6 +14,7 @@ import { categories } from '@/data/categories';
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const pathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(pathname);
   const cartItemCount = useCartStore((state) => state.getItemCount());
@@ -21,6 +22,7 @@ export default function Header() {
   const openCart = useCartStore((state) => state.openCart);
 
   useEffect(() => {
+    setHasMounted(true);
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
@@ -77,7 +79,7 @@ export default function Header() {
             
             <Link href="/account/wishlist" className="relative p-2 text-gray-700 hover:text-blue-600 rounded-md hover:bg-gray-50 transition-colors">
               <Heart size={20} />
-              {wishlistItems.length > 0 && (
+              {hasMounted && wishlistItems.length > 0 && (
                 <span className="absolute top-0 right-0 bg-orange-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center translate-x-1/4 -translate-y-1/4">
                   {wishlistItems.length}
                 </span>
@@ -86,7 +88,7 @@ export default function Header() {
 
             <button onClick={openCart} className="relative p-2 text-gray-700 hover:text-blue-600 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2">
               <ShoppingCart size={20} />
-              {cartItemCount > 0 && (
+              {hasMounted && cartItemCount > 0 && (
                 <span className="absolute top-0 right-0 lg:static lg:bg-transparent lg:text-inherit bg-blue-600 text-white text-[10px] lg:text-sm font-bold h-4 w-4 lg:h-auto lg:w-auto rounded-full flex items-center justify-center translate-x-1/4 -translate-y-1/4 lg:translate-x-0 lg:translate-y-0">
                   {cartItemCount}
                 </span>

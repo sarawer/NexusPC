@@ -22,7 +22,7 @@ export default function RegisterPage() {
         phone: String(form.get('phone') || ''),
         password: String(form.get('password')),
       });
-      router.push('/account');
+      router.push('/');
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to create your account.');

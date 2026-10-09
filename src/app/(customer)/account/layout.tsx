@@ -36,7 +36,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                 <Link href="/account/wishlist" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg"><Heart size={18} /> Wishlist</Link>
                 <Link href="/account/settings" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg"><Settings size={18} /> Settings</Link>
                 {user?.role === 'ADMIN' && <Link href="/admin" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-lg">Admin panel</Link>}
-                <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg mt-2 border-t border-gray-100"><LogOut size={18} /> Logout</button>
+                <button onClick={logout} className="w-full flex cursor-pointer items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg mt-2 border-t border-gray-100 transition-colors"><LogOut size={18} /> Logout</button>
               </nav>
             </div>
           </div>

@@ -1,10 +1,15 @@
 // src/components/home/CategorySection.tsx
-import { categories } from '@/data/categories';
 import CategoryCard from '@/components/ui/CategoryCard';
+import { categoryService } from '@/lib/services/categoryService';
 
-export default function CategorySection() {
-  // Show top 12 categories on homepage
-  const displayCategories = categories.slice(0, 12);
+export default async function CategorySection() {
+  let displayCategories = [];
+  try {
+    const categories = await categoryService.list();
+    displayCategories = categories.slice(0, 12);
+  } catch {
+    displayCategories = [];
+  }
 
   return (
     <section className="py-16 bg-white">

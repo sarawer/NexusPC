@@ -17,7 +17,7 @@ export default function LoginPage() {
     const form = new FormData(event.currentTarget);
     try {
       await authService.login(String(form.get('email')), String(form.get('password')));
-      router.push('/account');
+      router.push('/');
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to sign in.');
