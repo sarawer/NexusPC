@@ -48,6 +48,7 @@ export const productService = {
   search: (query: string) => list(`?q=${encodeURIComponent(query)}&size=100`),
   async filter(filters: ProductFilters, sort: SortOption = 'featured') {
     const params = new URLSearchParams({ size: '100' });
+    if (filters.query) params.set('q', filters.query);
     if (filters.categorySlug) params.set('category', filters.categorySlug);
     if (filters.brands?.length) params.set('brand', filters.brands[0]);
     if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));

@@ -13,6 +13,7 @@ export default async function ProductsPage({
   
   // Parse filters from URL
   const filters = {
+    query: resolvedParams.q ? String(resolvedParams.q) : undefined,
     brands: resolvedParams.brands ? (resolvedParams.brands as string).split(',') : undefined,
     minPrice: resolvedParams.minPrice ? parseInt(resolvedParams.minPrice as string) : undefined,
     maxPrice: resolvedParams.maxPrice ? parseInt(resolvedParams.maxPrice as string) : undefined,
@@ -33,7 +34,7 @@ export default async function ProductsPage({
           {/* Main Content */}
           <div className="flex-1">
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-              <h1 className="text-xl font-bold text-gray-900">All Products <span className="text-sm font-normal text-gray-500 ml-2">({products.length} items)</span></h1>
+              <h1 className="text-xl font-bold text-gray-900">{filters.query ? `Search results for "${filters.query}"` : 'All Products'} <span className="text-sm font-normal text-gray-500 ml-2">({products.length} items)</span></h1>
               
               {/* Sort - Would be a client component for interaction normally, kept simple here */}
               <div className="flex items-center gap-2 w-full sm:w-auto">

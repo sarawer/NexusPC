@@ -10,7 +10,7 @@ import { useEffect } from 'react';
 import { wishlistService } from '@/lib/services/shopService';
 
 export default function WishlistPage() {
-  const { items, removeItem, replaceItems } = useWishlistStore();
+  const { items, replaceItems } = useWishlistStore();
   const addItemToCart = useCartStore(state => state.addItem);
   useEffect(() => {
     wishlistService.list().then(replaceItems).catch(() => undefined);
@@ -53,9 +53,13 @@ export default function WishlistPage() {
             return (
               <div key={item.productId} className="border border-gray-200 rounded-lg p-4 flex flex-col relative group">
                 <button 
-                  onClick={() => {
-                    removeItem(item.productId);
-                    wishlistService.remove(item.productId).catch(() => undefined);
+                  onClick={async () => {
+                    try {
+                      const savedItems = await wishlistService.remove(item.productId);
+                      replaceItems(savedItems);
+                    } catch {
+                      // Keep the item visible when the server could not remove it.
+                    }
                   }}
                   className="absolute top-2 right-2 p-1.5 bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors z-10 opacity-0 group-hover:opacity-100"
                   aria-label="Remove from wishlist"

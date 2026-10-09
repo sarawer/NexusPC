@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShieldCheck, Truck, CreditCard, ChevronRight } from 'lucide-react';
+import { ShieldCheck, Truck, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
@@ -18,8 +18,10 @@ export default function CheckoutPage() {
   const { items, getSubtotal, couponDiscount, clearCart } = useCartStore();
   const [deliveryMethod, setDeliveryMethod] = useState('inside_dhaka');
   const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [division, setDivision] = useState('dhaka');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const bkashEnabled = process.env.NEXT_PUBLIC_BKASH_ENABLED === 'true';
 
   const subtotal = getSubtotal();
   const deliveryCharge = deliveryMethod === 'inside_dhaka' ? 80 : 150;
@@ -46,7 +48,7 @@ export default function CheckoutPage() {
           name: `${form.get('firstName') || ''} ${form.get('lastName') || ''}`.trim(),
           email: String(form.get('email') || ''),
           phone: String(form.get('phone') || ''),
-          division: 'Dhaka',
+          division: division.charAt(0).toUpperCase() + division.slice(1),
           district: String(form.get('district') || ''),
           area: String(form.get('area') || form.get('district') || ''),
           address: String(form.get('address') || ''),
@@ -56,6 +58,10 @@ export default function CheckoutPage() {
         couponCode: couponDiscount > 0 ? useCartStore.getState().couponCode : undefined,
       });
       clearCart();
+      if (order.paymentMethod === 'bkash' && order.paymentUrl) {
+        window.location.assign(order.paymentUrl);
+        return;
+      }
       router.push(`/checkout/success?orderId=${order.id}`);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Unable to place order. Please try again.');
@@ -107,18 +113,22 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="division">Division *</Label>
-                    <Select defaultValue="dhaka" required>
-                      <SelectTrigger id="division">
+                    <Select value={division} onValueChange={(value) => setDivision(value ?? 'dhaka')} required>
+                      <SelectTrigger id="division" className="h-11 w-full min-w-0 bg-white px-3 text-gray-900">
                         <SelectValue placeholder="Select Division" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent align="start" sideOffset={6} className="w-(--anchor-width) border border-gray-200 bg-white p-1 shadow-lg">
                         <SelectItem value="dhaka">Dhaka</SelectItem>
-                        <SelectItem value="chattogram">Chattogram</SelectItem>
-                        <SelectItem value="sylhet">Sylhet</SelectItem>
-                        <SelectItem value="rajshahi">Rajshahi</SelectItem>
                         <SelectItem value="khulna">Khulna</SelectItem>
+                        <SelectItem value="mymensingh">Mymensingh</SelectItem>
+                        <SelectItem value="rajshahi">Rajshahi</SelectItem>
+                        <SelectItem value="rangpur">Rangpur</SelectItem>
+                        <SelectItem value="sylhet">Sylhet</SelectItem>
+                        <SelectItem value="barishal">Barishal</SelectItem>
+                        <SelectItem value="chattagram">Chattagram</SelectItem>
                       </SelectContent>
                     </Select>
+                    <input type="hidden" name="division" value={division} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="district">District / City *</Label>
@@ -145,8 +155,8 @@ export default function CheckoutPage() {
               </h2>
               
               <RadioGroup value={deliveryMethod} onValueChange={setDeliveryMethod} className="gap-4">
-                <div className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-colors cursor-pointer ${deliveryMethod === 'inside_dhaka' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200'}`}>
-                  <RadioGroupItem value="inside_dhaka" id="delivery_inside" className="mt-1" />
+                <div onClick={() => setDeliveryMethod('inside_dhaka')} className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-colors cursor-pointer ${deliveryMethod === 'inside_dhaka' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200'}`}>
+                  <RadioGroupItem checked={deliveryMethod === 'inside_dhaka'} onChange={() => setDeliveryMethod('inside_dhaka')} value="inside_dhaka" id="delivery_inside" className="mt-1" />
                   <div className="flex-1">
                     <Label htmlFor="delivery_inside" className="text-base font-semibold cursor-pointer block mb-1">Inside Dhaka</Label>
                     <p className="text-sm text-gray-500">Delivery in 1-2 days</p>
@@ -154,8 +164,8 @@ export default function CheckoutPage() {
                   <span className="font-bold text-gray-900">৳80</span>
                 </div>
                 
-                <div className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-colors cursor-pointer ${deliveryMethod === 'outside_dhaka' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200'}`}>
-                  <RadioGroupItem value="outside_dhaka" id="delivery_outside" className="mt-1" />
+                <div onClick={() => setDeliveryMethod('outside_dhaka')} className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-colors cursor-pointer ${deliveryMethod === 'outside_dhaka' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200'}`}>
+                  <RadioGroupItem checked={deliveryMethod === 'outside_dhaka'} onChange={() => setDeliveryMethod('outside_dhaka')} value="outside_dhaka" id="delivery_outside" className="mt-1" />
                   <div className="flex-1">
                     <Label htmlFor="delivery_outside" className="text-base font-semibold cursor-pointer block mb-1">Outside Dhaka</Label>
                     <p className="text-sm text-gray-500">Delivery in 3-5 days via Sundarban/SA Paribahan</p>
@@ -172,9 +182,9 @@ export default function CheckoutPage() {
                 Payment Method
               </h2>
               
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 text-center transition-colors cursor-pointer ${paymentMethod === 'cod' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200 hover:border-blue-200'}`}>
-                  <RadioGroupItem value="cod" id="pay_cod" className="sr-only" />
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className={`grid grid-cols-1 ${bkashEnabled ? 'md:grid-cols-2' : ''} gap-4`}>
+                <div onClick={() => setPaymentMethod('cod')} className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 text-center transition-colors cursor-pointer ${paymentMethod === 'cod' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200 hover:border-blue-200'}`}>
+                  <RadioGroupItem checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} value="cod" id="pay_cod" className="sr-only" />
                   <Label htmlFor="pay_cod" className="cursor-pointer flex flex-col items-center w-full h-full">
                     <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-3">
                       <Truck size={24} />
@@ -184,28 +194,24 @@ export default function CheckoutPage() {
                   </Label>
                 </div>
 
-                <div className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 text-center transition-colors cursor-pointer ${paymentMethod === 'bkash' ? 'border-pink-600 bg-pink-50/50' : 'border-gray-200 hover:border-pink-200'}`}>
-                  <RadioGroupItem value="bkash" id="pay_bkash" className="sr-only" />
-                  <Label htmlFor="pay_bkash" className="cursor-pointer flex flex-col items-center w-full h-full">
-                    <div className="w-12 h-12 bg-pink-600 text-white font-bold rounded-full flex items-center justify-center mb-3 text-sm">
-                      bKash
-                    </div>
-                    <span className="font-bold text-gray-900">bKash Payment</span>
-                    <span className="text-xs text-gray-500 mt-1">Instant mobile payment</span>
-                  </Label>
-                </div>
-
-                <div className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 text-center transition-colors cursor-pointer ${paymentMethod === 'card' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200 hover:border-blue-200'}`}>
-                  <RadioGroupItem value="card" id="pay_card" className="sr-only" />
-                  <Label htmlFor="pay_card" className="cursor-pointer flex flex-col items-center w-full h-full">
-                    <div className="w-12 h-12 bg-slate-800 text-white rounded-full flex items-center justify-center mb-3">
-                      <CreditCard size={24} />
-                    </div>
-                    <span className="font-bold text-gray-900">Card Payment</span>
-                    <span className="text-xs text-gray-500 mt-1">Visa, Master, Amex</span>
-                  </Label>
-                </div>
+                {bkashEnabled && (
+                  <div onClick={() => setPaymentMethod('bkash')} className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 text-center transition-colors cursor-pointer ${paymentMethod === 'bkash' ? 'border-pink-600 bg-pink-50/50' : 'border-gray-200 hover:border-pink-200'}`}>
+                    <RadioGroupItem checked={paymentMethod === 'bkash'} onChange={() => setPaymentMethod('bkash')} value="bkash" id="pay_bkash" className="sr-only" />
+                    <Label htmlFor="pay_bkash" className="cursor-pointer flex flex-col items-center w-full h-full">
+                      <div className="w-16 h-12 bg-white rounded-lg flex items-center justify-center mb-3 overflow-hidden">
+                        <Image src="/bkash-logo.png" alt="bKash" width={64} height={48} className="h-full w-full object-contain" />
+                      </div>
+                      <span className="font-bold text-gray-900">bKash Payment</span>
+                      <span className="text-xs text-gray-500 mt-1">Pay securely with bKash</span>
+                    </Label>
+                  </div>
+                )}
               </RadioGroup>
+              {bkashEnabled && paymentMethod === 'bkash' && (
+                <div className="mt-4 rounded-lg border border-pink-100 bg-pink-50 p-4 text-sm text-pink-900">
+                  bKash payment will be confirmed after your order is submitted. Keep your bKash transaction details ready.
+                </div>
+              )}
             </div>
 
           </div>

@@ -31,7 +31,7 @@ function RadioGroup({
   )
 }
 
-interface RadioGroupItemProps extends Omit<React.ComponentProps<"input">, "type" | "onChange"> {
+interface RadioGroupItemProps extends Omit<React.ComponentProps<"input">, "type"> {
   value: string;
   onCheckedChange?: (checked: boolean) => void;
 }

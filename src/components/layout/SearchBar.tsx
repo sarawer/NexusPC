@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, X, TrendingUp, Clock, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { searchProducts } from '@/data/products';
+import { productService } from '@/lib/services/productService';
 
 import { formatPrice } from '@/lib/utils';
 
@@ -18,8 +18,19 @@ export default function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Derive results during render to avoid cascading updates in useEffect
-  const results = query.length >= 2 ? searchProducts(query).slice(0, 5) : [];
+  const [results, setResults] = useState<Awaited<ReturnType<typeof productService.search>>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (query.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    productService.search(query.trim()).then((items) => {
+      if (!cancelled) setResults(items.slice(0, 5));
+    });
+    return () => { cancelled = true; };
+  }, [query]);
 
   useEffect(() => {
     const saved = localStorage.getItem('nexuspc-recent-searches');
@@ -43,7 +54,7 @@ export default function SearchBar() {
     e.preventDefault();
     if (!query.trim()) return;
     saveRecentSearch(query.trim());
-    router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+    router.push(`/products?q=${encodeURIComponent(query.trim())}`);
     setIsOpen(false);
     setQuery('');
   };
@@ -56,7 +67,7 @@ export default function SearchBar() {
 
   const handleSuggestionClick = (term: string) => {
     saveRecentSearch(term);
-    router.push(`/search?q=${encodeURIComponent(term)}`);
+    router.push(`/products?q=${encodeURIComponent(term)}`);
     setIsOpen(false);
     setQuery('');
   };
@@ -136,7 +147,7 @@ export default function SearchBar() {
               ))}
               <div className="border-t border-gray-100">
                 <Link
-                  href={`/search?q=${encodeURIComponent(query)}`}
+                  href={`/products?q=${encodeURIComponent(query)}`}
                   onClick={() => { saveRecentSearch(query); setIsOpen(false); setQuery(''); }}
                   className="flex items-center justify-between px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 transition-colors font-medium"
                 >

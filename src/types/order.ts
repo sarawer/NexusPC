@@ -50,6 +50,7 @@ export interface Order {
   total: number;
   couponCode?: string;
   notes?: string;
+  paymentUrl?: string;
   createdAt: string;
   updatedAt: string;
   estimatedDelivery?: string;

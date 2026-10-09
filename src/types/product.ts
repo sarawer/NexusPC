@@ -74,6 +74,7 @@ export interface Review {
 }
 
 export interface ProductFilters {
+  query?: string;
   categorySlug?: string;
   brands?: string[];
   minPrice?: number;

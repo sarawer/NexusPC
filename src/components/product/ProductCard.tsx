@@ -7,6 +7,9 @@ import type { Product } from '@/types/product';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { getAuthToken } from '@/lib/api';
+import { wishlistService } from '@/lib/services/shopService';
+import { useState } from 'react';
 
 interface ProductCardProps {
   product: Product;
@@ -14,7 +17,9 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const addItemToCart = useCartStore((state) => state.addItem);
-  const { items: wishlistItems, toggleItem: toggleWishlist } = useWishlistStore();
+  const { items: wishlistItems, toggleItem: toggleWishlist, replaceItems } = useWishlistStore();
+  const [wishlistError, setWishlistError] = useState('');
+  const [wishlistPending, setWishlistPending] = useState(false);
   
   const isWishlisted = wishlistItems.some((item) => item.productId === product.id);
   const isOutOfStock = product.stockStatus === 'out_of_stock' || product.stockCount === 0;
@@ -37,9 +42,14 @@ export default function ProductCard({ product }: ProductCardProps) {
     });
   };
 
-  const handleWishlist = (e: React.MouseEvent) => {
+  const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
-    toggleWishlist({
+    if (!getAuthToken()) {
+      setWishlistError('Log in to save products to your wishlist.');
+      return;
+    }
+    if (wishlistPending) return;
+    const item = {
       productId: product.id,
       slug: product.slug,
       name: product.name,
@@ -50,7 +60,22 @@ export default function ProductCard({ product }: ProductCardProps) {
       categoryName: product.categoryName,
       stockStatus: product.stockStatus,
       addedAt: new Date().toISOString(),
-    });
+    };
+    const wasWishlisted = isWishlisted;
+    toggleWishlist(item);
+    setWishlistPending(true);
+    setWishlistError('');
+    try {
+      const savedItems = wasWishlisted
+        ? await wishlistService.remove(product.id)
+        : await wishlistService.add(product.id);
+      replaceItems(savedItems);
+    } catch {
+      toggleWishlist(item);
+      setWishlistError('Unable to update your wishlist. Please try again.');
+    } finally {
+      setWishlistPending(false);
+    }
   };
 
   return (
@@ -69,11 +94,17 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-2 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
         <button 
           onClick={handleWishlist}
+          disabled={wishlistPending}
           className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 transition-colors"
           aria-label="Add to Wishlist"
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} className={isWishlisted ? "text-red-500" : ""} />
         </button>
+        {wishlistError && (
+          <p className="absolute right-0 top-9 w-56 rounded-md bg-white p-2 text-right text-[11px] text-red-600 shadow-md">
+            {wishlistError}
+          </p>
+        )}
         <button 
           className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-gray-50 transition-colors"
           aria-label="Compare"

@@ -2,8 +2,11 @@
 // src/app/(customer)/pc-builder/page.tsx
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
 import { usePCBuilderStore } from '@/store/pcBuilderStore';
 import { useCartStore } from '@/store/cartStore';
+import { getAuthToken } from '@/lib/api';
+import { pcBuilderService } from '@/lib/services/pcBuilderService';
 import { formatPrice } from '@/lib/utils';
 import {
   Trash2, ShoppingCart, 
@@ -15,6 +18,8 @@ export default function PCBuilderPage() {
   const { slots, buildName, setBuildName, removeComponent, getTotalPrice, getWarnings, isComplete } = usePCBuilderStore();
   const addItemToCart = useCartStore(state => state.addItem);
   const openCart = useCartStore(state => state.openCart);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const warnings = getWarnings();
   const total = getTotalPrice();
@@ -37,6 +42,31 @@ export default function PCBuilderPage() {
       }
     });
     openCart();
+  };
+
+  const handleSaveBuild = async () => {
+    if (!getAuthToken()) {
+      setSaveMessage('Please log in to save your build.');
+      return;
+    }
+    if (!completed || warnings.some((warning) => warning.severity === 'error')) {
+      setSaveMessage('Select all required components and fix compatibility errors first.');
+      return;
+    }
+    setIsSaving(true);
+    setSaveMessage('');
+    try {
+      const components = Object.fromEntries(
+        slots.filter((slot) => slot.selectedComponent)
+          .map((slot) => [slot.key, Number(slot.selectedComponent!.id)]),
+      );
+      await pcBuilderService.save(buildName.trim() || 'My Custom Build', components);
+      setSaveMessage('Build saved to your account.');
+    } catch {
+      setSaveMessage('Unable to save this build. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const getIcon = (iconName: string) => {
@@ -76,6 +106,9 @@ export default function PCBuilderPage() {
           </div>
           
           <div className="flex gap-2 w-full sm:w-auto">
+            <button type="button" onClick={handleSaveBuild} disabled={isSaving} className="flex-1 sm:flex-none px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors">
+              {isSaving ? 'Saving...' : 'Save Build'}
+            </button>
             <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors">
               <Share2 size={16} /> Share
             </button>
@@ -83,6 +116,7 @@ export default function PCBuilderPage() {
               <Printer size={16} /> Print
             </button>
           </div>
+          {saveMessage && <p className="mt-3 text-sm text-gray-600">{saveMessage}</p>}
         </div>
 
         {/* Warnings */}

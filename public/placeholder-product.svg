@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="#f1f5f9"/>
+  <path d="M120 145h160v120H120z" fill="#cbd5e1"/>
+  <path d="M145 115h110v30H145z" fill="#94a3b8"/>
+  <circle cx="170" cy="205" r="16" fill="#64748b"/>
+  <circle cx="230" cy="205" r="16" fill="#64748b"/>
+  <text x="200" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" fill="#475569">NexusPC</text>
+</svg>
