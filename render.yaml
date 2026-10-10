@@ -1,11 +1,10 @@
 services:
   - type: web
     name: nexuspc-backend
-    env: java
+    env: docker
     plan: free
-    rootDir: backend
-    buildCommand: ./mvnw clean package -DskipTests
-    startCommand: java -jar target/nexuspc-backend-0.0.1-SNAPSHOT.jar
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     healthCheckPath: /actuator/health
     envVars:
       - key: PORT
