@@ -1,9 +1,10 @@
 // src/components/home/CategorySection.tsx
 import CategoryCard from '@/components/ui/CategoryCard';
 import { categoryService } from '@/lib/services/categoryService';
+import type { Category } from '@/types/product';
 
 export default async function CategorySection() {
-  let displayCategories = [];
+  let displayCategories: Category[] = [];
   try {
     const categories = await categoryService.list();
     displayCategories = categories.slice(0, 12);
