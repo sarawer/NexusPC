@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 /** Explicit admin namespace kept as a stable API for dashboard clients. */
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class AdminCatalogController {
     private final CategoryService categories;
     private final ProductService products;

@@ -1,2 +1,2 @@
 package com.nexuspc.user;
-public enum UserRole { CUSTOMER, ADMIN }
+public enum UserRole { CUSTOMER, ADMIN, SUPER_ADMIN }

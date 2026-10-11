@@ -54,7 +54,7 @@ public class User {
     public String getPassword() { return password; }
     public UserRole getRole() { return role; }
     public Instant getCreatedAt() { return createdAt; }
-    public void promoteToAdmin() { this.role = UserRole.ADMIN; }
+    public void setRole(UserRole role) { this.role = role; }
     public void updateProfile(String name, String phone) {
         this.name = name;
         this.phone = phone;

@@ -1,6 +1,6 @@
 package com.nexuspc.admin;
 import com.nexuspc.catalog.product.*; import jakarta.validation.Valid; import jakarta.validation.constraints.*; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.web.bind.annotation.*; import java.util.*;
-@RestController @RequestMapping("/api/admin/inventory") @PreAuthorize("hasRole('ADMIN')") public class AdminInventoryController {
+@RestController @RequestMapping("/api/admin/inventory") @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')") public class AdminInventoryController {
  private final ProductRepository products; public AdminInventoryController(ProductRepository p){products=p;}
  public record StockUpdate(@Min(0) int stockCount){}
  @GetMapping("/low-stock") public List<Product> lowStock(){return products.findAll().stream().filter(p->p.getStockCount()<10).toList();}
