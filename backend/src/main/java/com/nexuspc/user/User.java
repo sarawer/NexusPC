@@ -55,6 +55,7 @@ public class User {
     public UserRole getRole() { return role; }
     public Instant getCreatedAt() { return createdAt; }
     public void setRole(UserRole role) { this.role = role; }
+    public void setPassword(String password) { this.password = password; }
     public void updateProfile(String name, String phone) {
         this.name = name;
         this.phone = phone;

@@ -11,6 +11,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import com.nexuspc.payment.BkashProperties;
 
 @SpringBootApplication
+@org.springframework.scheduling.annotation.EnableAsync
 @EnableConfigurationProperties(BkashProperties.class)
 public class NexusPcApplication {
     @Bean
