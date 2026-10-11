@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShieldCheck, Truck, ChevronRight } from 'lucide-react';
+import { ShieldCheck, Truck, ChevronRight, Trash2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
@@ -11,21 +11,36 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { orderService } from '@/lib/services/shopService';
+import { couponService, orderService } from '@/lib/services/shopService';
+import { notify } from '@/components/ui/toast';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, getSubtotal, couponDiscount, clearCart } = useCartStore();
+  const { items, getSubtotal, couponDiscount, couponCode, applyCoupon, removeCoupon, clearCart } = useCartStore();
+  const [couponInput, setCouponInput] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState('inside_dhaka');
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [division, setDivision] = useState('dhaka');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
   const bkashEnabled = process.env.NEXT_PUBLIC_BKASH_ENABLED === 'true';
 
   const subtotal = getSubtotal();
   const deliveryCharge = deliveryMethod === 'inside_dhaka' ? 80 : 150;
-  const total = subtotal - couponDiscount + (items.length > 0 ? deliveryCharge : 0);
+  const total = Math.max(0, subtotal - couponDiscount) + (items.length > 0 ? deliveryCharge : 0);
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) { notify.info('Enter a coupon code first.'); return; }
+    setIsApplyingCoupon(true);
+    try {
+      const coupon = await couponService.validate(couponInput.trim(), subtotal);
+      applyCoupon(coupon.code, coupon.discount);
+      setCouponInput('');
+      notify.success('Coupon applied', `${coupon.code} has been applied to your order.`);
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Coupon code is not valid.');
+    } finally { setIsApplyingCoupon(false); }
+  };
 
   if (items.length === 0) {
     return (
@@ -39,7 +54,6 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSubmitError('');
     const form = new FormData(e.currentTarget);
     try {
       const order = await orderService.create({
@@ -55,16 +69,17 @@ export default function CheckoutPage() {
         },
         deliveryMethod,
         paymentMethod,
-        couponCode: couponDiscount > 0 ? useCartStore.getState().couponCode : undefined,
+        couponCode: couponCode || undefined,
       });
       clearCart();
+      if (order.paymentMethod !== 'bkash') notify.success('Order placed successfully', `Order #${order.id} is confirmed.`);
       if (order.paymentMethod === 'bkash' && order.paymentUrl) {
         window.location.assign(order.paymentUrl);
         return;
       }
       router.push(`/checkout/success?orderId=${order.id}`);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Unable to place order. Please try again.');
+      notify.error(error instanceof Error ? error.message : 'Unable to place order. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -238,6 +253,28 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              <div className="mt-4">
+                {couponCode ? (
+                  <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                    <span className="font-medium">Coupon applied: {couponCode}</span>
+                    <button type="button" onClick={() => { removeCoupon(); notify.success('Coupon removed'); }} className="text-gray-400 transition-colors hover:text-red-500" aria-label="Remove coupon"><Trash2 size={15} /></button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      aria-label="Promo code"
+                      type="text"
+                      placeholder="Promo Code"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleApplyCoupon(); } }}
+                      className="input-base min-w-0 flex-1"
+                    />
+                    <button type="button" onClick={() => void handleApplyCoupon()} disabled={isApplyingCoupon} className="btn-outline px-4 disabled:cursor-wait disabled:opacity-60">{isApplyingCoupon ? 'Checking…' : 'Apply'}</button>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-3 pt-4 border-t border-gray-100 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
@@ -249,7 +286,7 @@ export default function CheckoutPage() {
                 </div>
                 {couponDiscount > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>Discount</span>
+                    <span>Discount ({couponCode})</span>
                     <span className="font-medium">-{formatPrice(couponDiscount)}</span>
                   </div>
                 )}
@@ -272,7 +309,6 @@ export default function CheckoutPage() {
               >
                 {isSubmitting ? 'Processing Order...' : 'Confirm Order'}
               </button>
-              {submitError && <p className="mt-3 text-sm text-red-600">{submitError}</p>}
             </div>
           </div>
         </form>

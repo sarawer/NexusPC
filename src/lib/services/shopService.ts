@@ -44,3 +44,10 @@ export const orderService = {
     body: JSON.stringify({ ...input, items: input.items.map((i) => ({ ...i, productId: Number(i.productId) })) }),
   }),
 };
+
+export interface CouponValidation { code: string; discount: number }
+export const couponService = {
+  validate: (code: string, subtotal: number) => apiFetch<CouponValidation>('/coupons/validate', {
+    method: 'POST', body: JSON.stringify({ code, subtotal }),
+  }),
+};

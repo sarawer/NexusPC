@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
+import { notify } from '@/components/ui/toast';
 
 export default function CartDrawer() {
   const { 
@@ -22,6 +23,7 @@ export default function CartDrawer() {
     const next = current + delta;
     if (next > 0 && next <= max) {
       updateQuantity(productId, next);
+      notify.success('Cart quantity updated');
     }
   };
 
@@ -90,7 +92,7 @@ export default function CartDrawer() {
                 </div>
 
                 <button 
-                  onClick={() => removeItem(item.productId)}
+                  onClick={() => { removeItem(item.productId); notify.success('Removed from cart', item.name); }}
                   className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors p-1"
                   aria-label="Remove item"
                 >
@@ -113,7 +115,7 @@ export default function CartDrawer() {
             <SheetClose nativeButton={false} render={<Link href="/checkout" className="w-full btn-primary py-3 justify-center text-base shadow-sm" />}>
                 Proceed to Checkout
             </SheetClose>
-            <SheetClose nativeButton={false} render={<Link href="/cart" className="w-full btn-outline py-2.5 justify-center mt-2 bg-white" />}>
+            <SheetClose nativeButton={false} render={<Link href="/cart" className="w-full btn-outline py-2.5 justify-center mt-2" />}>
                 View Full Cart
             </SheetClose>
           </div>

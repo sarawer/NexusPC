@@ -7,11 +7,13 @@ import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import { useState } from 'react';
 import { useEffect } from 'react';
-import { cartService } from '@/lib/services/shopService';
+import { cartService, couponService } from '@/lib/services/shopService';
+import { notify } from '@/components/ui/toast';
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, replaceItems, getSubtotal, applyCoupon, removeCoupon, couponCode, couponDiscount } = useCartStore();
   const [couponInput, setCouponInput] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   useEffect(() => {
     cartService.get().then(replaceItems).catch(() => undefined);
   }, [replaceItems]);
@@ -21,12 +23,18 @@ export default function CartPage() {
   const deliveryCharge = 80;
   const total = subtotal - couponDiscount + (items.length > 0 ? deliveryCharge : 0);
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (couponInput.trim()) {
-      applyCoupon(couponInput.trim());
+    if (!couponInput.trim()) { notify.info('Enter a coupon code first.'); return; }
+    setIsApplyingCoupon(true);
+    try {
+      const coupon = await couponService.validate(couponInput.trim(), subtotal);
+      applyCoupon(coupon.code, coupon.discount);
       setCouponInput('');
-    }
+      notify.success('Coupon applied', `${coupon.code} has been applied to your cart.`);
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Coupon code is not valid.');
+    } finally { setIsApplyingCoupon(false); }
   };
 
   const handleQuantityChange = (productId: string, current: number, delta: number, max: number) => {
@@ -34,6 +42,7 @@ export default function CartPage() {
     if (next > 0 && next <= max) {
       updateQuantity(productId, next);
       cartService.update(productId, next).catch(() => undefined);
+      notify.success('Cart quantity updated');
     }
   };
 
@@ -126,6 +135,7 @@ export default function CartPage() {
                       onClick={() => {
                         removeItem(item.productId);
                         cartService.remove(item.productId).catch(() => undefined);
+                        notify.success('Removed from cart', item.name);
                       }}
                       className="absolute top-4 right-4 sm:relative sm:top-0 sm:right-0 sm:absolute sm:right-4 text-gray-400 hover:text-red-500 transition-colors p-1 bg-white sm:bg-transparent rounded-full"
                       aria-label="Remove item"
@@ -182,7 +192,7 @@ export default function CartPage() {
                       <ShieldCheck size={16} />
                       Coupon Applied: {couponCode}
                     </div>
-                    <button onClick={removeCoupon} className="text-gray-400 hover:text-red-500">
+                    <button onClick={() => { removeCoupon(); notify.success('Coupon removed'); }} className="text-gray-400 hover:text-red-500">
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -195,8 +205,8 @@ export default function CartPage() {
                       onChange={(e) => setCouponInput(e.target.value)}
                       className="input-base flex-1"
                     />
-                    <button type="submit" className="btn-outline px-4 bg-gray-50">
-                      Apply
+                    <button type="submit" disabled={isApplyingCoupon} className="btn-outline px-4 disabled:cursor-wait disabled:opacity-60">
+                      {isApplyingCoupon ? 'Checking…' : 'Apply'}
                     </button>
                   </form>
                 )}

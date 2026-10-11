@@ -15,7 +15,7 @@ interface CartStore {
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
-  applyCoupon: (code: string) => void;
+  applyCoupon: (code: string, discount: number) => void;
   removeCoupon: () => void;
   getSubtotal: () => number;
   getTotal: (deliveryCharge: number) => number;
@@ -23,11 +23,6 @@ interface CartStore {
   replaceItems: (items: CartItem[]) => void;
 }
 
-const VALID_COUPONS: Record<string, number> = {
-  SAVE500: 500,
-  NEXUS10: 0, // percentage handled separately
-  WELCOME200: 200,
-};
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -78,12 +73,7 @@ export const useCartStore = create<CartStore>()(
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
 
-      applyCoupon: (code) => {
-        const discount = VALID_COUPONS[code.toUpperCase()];
-        if (discount !== undefined) {
-          set({ couponCode: code.toUpperCase(), couponDiscount: discount });
-        }
-      },
+      applyCoupon: (code, discount) => set({ couponCode: code.toUpperCase(), couponDiscount: discount }),
 
       removeCoupon: () => set({ couponCode: '', couponDiscount: 0 }),
 

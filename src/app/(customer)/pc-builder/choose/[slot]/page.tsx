@@ -10,6 +10,8 @@ import { usePCBuilderStore } from '@/store/pcBuilderStore';
 import type { PCBuildSlot } from '@/types/pc-builder';
 import type { Product } from '@/types/product';
 import { formatPrice } from '@/lib/utils';
+import { FeedbackMessage } from '@/components/ui/feedback-message';
+import { notify } from '@/components/ui/toast';
 
 export default function ChooseComponentPage() {
   const params = useParams<{ slot: string }>();
@@ -59,6 +61,7 @@ export default function ChooseComponentPage() {
       slug: product.slug,
       specifications: product.specifications,
     });
+    notify.success('Component added to your build', product.name);
     router.push('/pc-builder');
   };
 
@@ -78,7 +81,7 @@ export default function ChooseComponentPage() {
             <Loader2 className="mr-2 animate-spin" size={20} /> Loading components...
           </div>
         )}
-        {!loading && error && <div className="rounded-xl bg-red-50 p-6 text-red-700">{error}</div>}
+        {!loading && error && <FeedbackMessage className="rounded-xl p-5">{error}</FeedbackMessage>}
         {!loading && !error && products.length === 0 && (
           <div className="rounded-xl bg-white p-16 text-center text-gray-500">No in-stock products are available for this slot.</div>
         )}

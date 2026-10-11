@@ -2,7 +2,7 @@
 // src/components/product/ProductCard.tsx
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, Heart, Eye, ArrowRightLeft } from 'lucide-react';
+import { ShoppingCart, Heart } from 'lucide-react';
 import type { Product } from '@/types/product';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
@@ -10,6 +10,7 @@ import { useWishlistStore } from '@/store/wishlistStore';
 import { getAuthToken } from '@/lib/api';
 import { wishlistService } from '@/lib/services/shopService';
 import { useState } from 'react';
+import { notify } from '@/components/ui/toast';
 
 interface ProductCardProps {
   product: Product;
@@ -18,7 +19,6 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const addItemToCart = useCartStore((state) => state.addItem);
   const { items: wishlistItems, toggleItem: toggleWishlist, replaceItems } = useWishlistStore();
-  const [wishlistError, setWishlistError] = useState('');
   const [wishlistPending, setWishlistPending] = useState(false);
   
   const isWishlisted = wishlistItems.some((item) => item.productId === product.id);
@@ -40,12 +40,13 @@ export default function ProductCard({ product }: ProductCardProps) {
       stockCount: product.stockCount,
       categoryName: product.categoryName,
     });
+    notify.success('Added to cart', product.name);
   };
 
   const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!getAuthToken()) {
-      setWishlistError('Log in to save products to your wishlist.');
+      notify.info('Sign in to save products to your wishlist.');
       return;
     }
     if (wishlistPending) return;
@@ -64,7 +65,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     const wasWishlisted = isWishlisted;
     toggleWishlist(item);
     setWishlistPending(true);
-    setWishlistError('');
+    notify.success(wasWishlisted ? 'Removed from wishlist' : 'Added to wishlist', product.name);
     try {
       const savedItems = wasWishlisted
         ? await wishlistService.remove(product.id)
@@ -72,7 +73,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       replaceItems(savedItems);
     } catch {
       toggleWishlist(item);
-      setWishlistError('Unable to update your wishlist. Please try again.');
+      notify.error('Could not update your wishlist. Please try again.');
     } finally {
       setWishlistPending(false);
     }
@@ -99,23 +100,6 @@ export default function ProductCard({ product }: ProductCardProps) {
           aria-label="Add to Wishlist"
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} className={isWishlisted ? "text-red-500" : ""} />
-        </button>
-        {wishlistError && (
-          <p className="absolute right-0 top-9 w-56 rounded-md bg-white p-2 text-right text-[11px] text-red-600 shadow-md">
-            {wishlistError}
-          </p>
-        )}
-        <button 
-          className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-gray-50 transition-colors"
-          aria-label="Compare"
-        >
-          <ArrowRightLeft size={16} />
-        </button>
-        <button 
-          className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-gray-50 transition-colors"
-          aria-label="Quick View"
-        >
-          <Eye size={16} />
         </button>
       </div>
 

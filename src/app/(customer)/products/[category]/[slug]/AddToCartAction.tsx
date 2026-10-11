@@ -7,6 +7,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { cartService, wishlistService } from '@/lib/services/shopService';
 import { getAuthToken } from '@/lib/api';
+import { notify } from '@/components/ui/toast';
 
 interface AddToCartActionProps {
   product: Product;
@@ -17,7 +18,6 @@ export default function AddToCartAction({ product }: AddToCartActionProps) {
   const addItemToCart = useCartStore((state) => state.addItem);
   const openCart = useCartStore((state) => state.openCart);
   const { items: wishlistItems, toggleItem: toggleWishlist, replaceItems } = useWishlistStore();
-  const [wishlistMessage, setWishlistMessage] = useState('');
   const [wishlistPending, setWishlistPending] = useState(false);
 
   const isOutOfStock = product.stockStatus === 'out_of_stock' || product.stockCount === 0;
@@ -47,6 +47,7 @@ export default function AddToCartAction({ product }: AddToCartActionProps) {
     });
     
     openCart();
+    notify.success('Added to cart', `${quantity} × ${product.name}`);
     try {
       await cartService.add(product.id, quantity);
     } catch {
@@ -56,7 +57,7 @@ export default function AddToCartAction({ product }: AddToCartActionProps) {
 
   const handleWishlist = async () => {
     if (!getAuthToken()) {
-      setWishlistMessage('Log in to save products to your wishlist.');
+      notify.info('Sign in to save products to your wishlist.');
       return;
     }
     if (wishlistPending) return;
@@ -75,7 +76,7 @@ export default function AddToCartAction({ product }: AddToCartActionProps) {
     };
     toggleWishlist(item);
     setWishlistPending(true);
-    setWishlistMessage('');
+    notify.success(wasWishlisted ? 'Removed from wishlist' : 'Added to wishlist', product.name);
     try {
       const savedItems = wasWishlisted
         ? await wishlistService.remove(product.id)
@@ -83,7 +84,7 @@ export default function AddToCartAction({ product }: AddToCartActionProps) {
       replaceItems(savedItems);
     } catch {
       toggleWishlist(item);
-      setWishlistMessage('Unable to update your wishlist. Please try again.');
+      notify.error('Could not update your wishlist. Please try again.');
     } finally {
       setWishlistPending(false);
     }
@@ -142,7 +143,6 @@ export default function AddToCartAction({ product }: AddToCartActionProps) {
           <Heart size={22} fill={isWishlisted ? "currentColor" : "none"} />
         </button>
       </div>
-      {wishlistMessage && <p className="text-sm text-red-600">{wishlistMessage}</p>}
     </div>
   );
 }

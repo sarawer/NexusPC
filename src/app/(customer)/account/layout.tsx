@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { User, Package, Heart, LogOut, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { authService, type User as AuthUser } from '@/lib/services/authService';
+import { notify } from '@/components/ui/toast';
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
   function logout() {
     authService.logout();
+    notify.success('Signed out successfully.');
     router.replace('/login');
   }
 

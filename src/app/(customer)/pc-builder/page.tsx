@@ -8,6 +8,8 @@ import { useCartStore } from '@/store/cartStore';
 import { getAuthToken } from '@/lib/api';
 import { pcBuilderService } from '@/lib/services/pcBuilderService';
 import { formatPrice } from '@/lib/utils';
+import { notify } from '@/components/ui/toast';
+import { FeedbackMessage } from '@/components/ui/feedback-message';
 import {
   Trash2, ShoppingCart, 
   Printer, Share2, Plus, AlertTriangle, CheckCircle
@@ -18,7 +20,6 @@ export default function PCBuilderPage() {
   const { slots, buildName, setBuildName, removeComponent, getTotalPrice, getWarnings, isComplete } = usePCBuilderStore();
   const addItemToCart = useCartStore(state => state.addItem);
   const openCart = useCartStore(state => state.openCart);
-  const [saveMessage, setSaveMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const warnings = getWarnings();
@@ -26,6 +27,11 @@ export default function PCBuilderPage() {
   const completed = isComplete();
 
   const handleAddAllToCart = () => {
+    const selectedSlots = slots.filter((slot) => slot.selectedComponent);
+    if (selectedSlots.length === 0) {
+      notify.info('Choose components before adding a build to your cart.');
+      return;
+    }
     slots.forEach(slot => {
       if (slot.selectedComponent) {
         addItemToCart({
@@ -42,28 +48,28 @@ export default function PCBuilderPage() {
       }
     });
     openCart();
+    notify.success('Build added to cart', `${selectedSlots.length} components added.`);
   };
 
   const handleSaveBuild = async () => {
     if (!getAuthToken()) {
-      setSaveMessage('Please log in to save your build.');
+      notify.info('Sign in to save your build.');
       return;
     }
     if (!completed || warnings.some((warning) => warning.severity === 'error')) {
-      setSaveMessage('Select all required components and fix compatibility errors first.');
+      notify.error('Complete the build and resolve compatibility issues before saving.');
       return;
     }
     setIsSaving(true);
-    setSaveMessage('');
     try {
       const components = Object.fromEntries(
         slots.filter((slot) => slot.selectedComponent)
           .map((slot) => [slot.key, Number(slot.selectedComponent!.id)]),
       );
       await pcBuilderService.save(buildName.trim() || 'My Custom Build', components);
-      setSaveMessage('Build saved to your account.');
+      notify.success('Build saved to your account.');
     } catch {
-      setSaveMessage('Unable to save this build. Please try again.');
+      notify.error('Unable to save this build. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -116,22 +122,25 @@ export default function PCBuilderPage() {
               <Printer size={16} /> Print
             </button>
           </div>
-          {saveMessage && <p className="mt-3 text-sm text-gray-600">{saveMessage}</p>}
         </div>
 
         {/* Warnings */}
         {warnings.length > 0 && (
           <div className="mt-6 space-y-2">
             {warnings.map((warning, idx) => (
-              <div key={idx} className={`p-4 rounded-lg flex gap-3 border ${
-                warning.severity === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-amber-50 border-amber-200 text-amber-800'
-              }`}>
-                <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-sm mb-1">Compatibility {warning.severity === 'error' ? 'Error' : 'Warning'}</p>
-                  <p className="text-sm opacity-90">{warning.message}</p>
+              warning.severity === 'error' ? (
+                <FeedbackMessage key={idx} title="Compatibility issue">
+                  {warning.message}
+                </FeedbackMessage>
+              ) : (
+                <div key={idx} className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                  <AlertTriangle size={20} className="mt-0.5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="mb-1 text-sm font-semibold">Compatibility warning</p>
+                    <p className="text-sm">{warning.message}</p>
+                  </div>
                 </div>
-              </div>
+              )
             ))}
           </div>
         )}
@@ -217,7 +226,7 @@ export default function PCBuilderPage() {
                           Change
                         </Link>
                         <button 
-                          onClick={() => removeComponent(slot.key)}
+                          onClick={() => { removeComponent(slot.key); notify.success('Component removed from your build.'); }}
                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                           aria-label="Remove component"
                         >

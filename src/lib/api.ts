@@ -1,6 +1,36 @@
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/$/, '');
 const TOKEN_KEY = 'nexuspc-token';
 
+function extractErrorMessage(body: string, fallback: string) {
+  if (!body.trim()) return fallback;
+
+  try {
+    const payload: unknown = JSON.parse(body);
+    if (typeof payload === 'string') return payload;
+    if (payload && typeof payload === 'object') {
+      const record = payload as Record<string, unknown>;
+      for (const key of ['message', 'detail', 'title', 'error']) {
+        const value = record[key];
+        if (typeof value === 'string' && value.trim()) {
+          try {
+            const nested = JSON.parse(value);
+            if (nested && typeof nested === 'object' && typeof (nested as Record<string, unknown>).message === 'string') {
+              return (nested as Record<string, string>).message;
+            }
+          } catch {
+            // The response field is already a readable message.
+          }
+          return value;
+        }
+      }
+    }
+  } catch {
+    return body;
+  }
+
+  return body;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -29,8 +59,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers, cache: 'no-store' });
   if (!response.ok) {
-    const message = await response.text().catch(() => '');
-    throw new ApiError(response.status, message || response.statusText);
+    const body = await response.text().catch(() => '');
+    throw new ApiError(response.status, extractErrorMessage(body, response.statusText));
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;

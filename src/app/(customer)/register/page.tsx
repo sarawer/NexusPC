@@ -4,15 +4,14 @@ import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/lib/services/authService';
+import { notify } from '@/components/ui/toast';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError('');
     setSubmitting(true);
     const form = new FormData(event.currentTarget);
     try {
@@ -22,10 +21,11 @@ export default function RegisterPage() {
         phone: String(form.get('phone') || ''),
         password: String(form.get('password')),
       });
+      notify.success('Your account has been created.');
       router.push('/');
       router.refresh();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Unable to create your account.');
+      notify.error(reason instanceof Error ? reason.message : 'Unable to create your account.');
       setSubmitting(false);
     }
   }
@@ -51,7 +51,6 @@ export default function RegisterPage() {
           Password
           <input name="password" type="password" minLength={8} required className="mt-2 w-full rounded-lg border px-3 py-2" />
         </label>
-        {error && <p className="text-sm text-red-600">{error}</p>}
         <button disabled={submitting} className="btn-primary w-full disabled:opacity-50">
           {submitting ? 'Creating account...' : 'Create account'}
         </button>

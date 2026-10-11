@@ -8,6 +8,7 @@ import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import { useEffect } from 'react';
 import { wishlistService } from '@/lib/services/shopService';
+import { notify } from '@/components/ui/toast';
 
 export default function WishlistPage() {
   const { items, replaceItems } = useWishlistStore();
@@ -29,6 +30,7 @@ export default function WishlistPage() {
       stockCount: 10, // Assuming in stock for wishlist demo
       categoryName: item.categoryName,
     });
+    notify.success('Added to cart', item.name);
   };
 
   return (
@@ -57,8 +59,9 @@ export default function WishlistPage() {
                     try {
                       const savedItems = await wishlistService.remove(item.productId);
                       replaceItems(savedItems);
+                      notify.success('Removed from wishlist', item.name);
                     } catch {
-                      // Keep the item visible when the server could not remove it.
+                      notify.error('Could not remove this item from your wishlist.');
                     }
                   }}
                   className="absolute top-2 right-2 p-1.5 bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors z-10 opacity-0 group-hover:opacity-100"
