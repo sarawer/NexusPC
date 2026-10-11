@@ -361,11 +361,8 @@ BOOTSTRAP_SUPERADMIN_EMAIL=superadmin@nexuspc.com
 BOOTSTRAP_SUPERADMIN_PASSWORD=<unique random password, at least 8 characters>
 CORS_ALLOWED_ORIGINS=https://nexuspc.sarawer.me,https://nexus-pc-w3q3.vercel.app
 FRONTEND_URL=https://nexuspc.sarawer.me
-MAIL_HOST=<SMTP server host>
-MAIL_PORT=587
-MAIL_USERNAME=<SMTP sender username>
-MAIL_PASSWORD=<SMTP app password or provider credential>
-MAIL_FROM=<verified sender email address>
+RESEND_API_KEY=<secret-managed Resend API key>
+RESEND_FROM=NexusPC <no-reply@nexuspc.sarawer.me>
 CLOUDINARY_CLOUD_NAME=<secret-managed value>
 CLOUDINARY_API_KEY=<secret-managed value>
 CLOUDINARY_API_SECRET=<secret-managed value>
@@ -391,11 +388,8 @@ BOOTSTRAP_SUPERADMIN_EMAIL=superadmin@nexuspc.com
 BOOTSTRAP_SUPERADMIN_PASSWORD=<unique random password, at least 8 characters>
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 FRONTEND_URL=http://localhost:3000
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=<sender email address>
-MAIL_PASSWORD=<mail provider app password>
-MAIL_FROM=<sender email address>
+RESEND_API_KEY=<Resend API key>
+RESEND_FROM=NexusPC <no-reply@nexuspc.sarawer.me>
 BKASH_ENABLED=false
 ```
 
