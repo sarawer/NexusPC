@@ -19,7 +19,8 @@ export default function LoginPage() {
     try {
       await authService.login(String(form.get('email')), String(form.get('password')));
       notify.success('Signed in successfully.');
-      router.push('/');
+      const redirectTo = new URLSearchParams(window.location.search).get('redirect');
+      router.push(redirectTo?.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/');
       router.refresh();
     } catch (reason) {
       notify.error(reason instanceof Error ? reason.message : 'Unable to sign in.');

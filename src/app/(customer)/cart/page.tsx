@@ -9,14 +9,15 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import { cartService, couponService } from '@/lib/services/shopService';
 import { notify } from '@/components/ui/toast';
+import { getAuthToken } from '@/lib/api';
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, replaceItems, getSubtotal, applyCoupon, removeCoupon, couponCode, couponDiscount } = useCartStore();
+  const { items, updateQuantity, removeItem, mergeItems, getSubtotal, applyCoupon, removeCoupon, couponCode, couponDiscount, hasHydrated } = useCartStore();
   const [couponInput, setCouponInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   useEffect(() => {
-    cartService.get().then(replaceItems).catch(() => undefined);
-  }, [replaceItems]);
+    if (hasHydrated && getAuthToken()) cartService.get().then(mergeItems).catch(() => undefined);
+  }, [hasHydrated, mergeItems]);
 
   const subtotal = getSubtotal();
   // Using inside dhaka delivery as default estimate
@@ -45,6 +46,10 @@ export default function CartPage() {
       notify.success('Cart quantity updated');
     }
   };
+
+  if (!hasHydrated) {
+    return <div className="container-site min-h-96 py-20 text-center text-gray-500" aria-live="polite">Loading your cart…</div>;
+  }
 
   if (items.length === 0) {
     return (

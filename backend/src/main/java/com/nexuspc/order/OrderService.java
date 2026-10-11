@@ -15,7 +15,7 @@ import java.math.*; import java.util.*;
   BigDecimal subtotal=BigDecimal.ZERO;
   for(var entry:quantities.entrySet()){Product p=products.findLockedById(entry.getKey()).orElseThrow(()->new NoSuchElementException("Product not found: "+entry.getKey())); int q=entry.getValue(); if(p.getStockCount()<q) throw new IllegalArgumentException("Insufficient stock for "+p.getName()); p.decreaseStock(q); String image=p.getImages().isEmpty()?null:p.getImages().get(0).getUrl(); var item=new OrderItem(order,p.getId(),p.getName(),p.getBrand(),image,p.getPrice(),q); order.addItem(item); subtotal=subtotal.add(item.getSubtotal());}
   BigDecimal discount=order.getCouponCode()==null||order.getCouponCode().isBlank()?BigDecimal.ZERO:coupons.validate(order.getCouponCode(),subtotal).discount(); BigDecimal total=subtotal.subtract(discount).add(order.getDeliveryCharge()); order.setTotals(subtotal,discount,total);
-  carts.findByUserEmailIgnoreCase(email).ifPresent(c->{c.getItems().clear();});
+  if (!"bkash".equals(r.paymentMethod())) carts.findByUserEmailIgnoreCase(email).ifPresent(c->{c.getItems().clear();});
   Order saved=orders.save(order);
   if ("bkash".equals(r.paymentMethod())) {
    var payment=bkash.start(saved);
@@ -25,13 +25,28 @@ import java.math.*; import java.util.*;
   }
   return OrderResponse.from(saved);
  }
- @Transactional public boolean completeBkashPayment(String paymentId){var order=orders.findByBkashPaymentId(paymentId).orElseThrow(()->new NoSuchElementException("Payment not found")); boolean paid=bkash.execute(paymentId); order.setPaymentStatus(paid?"paid":"failed"); if(paid) order.setStatus("confirmed"); return paid;}
- @Transactional(readOnly=true) public String paymentRedirect(String paymentId,boolean paid){return bkash.frontendUrl()+"/checkout/success?paymentId="+paymentId+"&status="+(paid?"success":"failed");}
+ @Transactional public boolean completeBkashPayment(String paymentId){
+  var order=orders.findByBkashPaymentId(paymentId).orElseThrow(()->new NoSuchElementException("Payment not found"));
+  if ("paid".equals(order.getPaymentStatus())) return true;
+  if ("cancelled".equals(order.getStatus()) || "failed".equals(order.getPaymentStatus())) return false;
+  boolean paid=bkash.execute(paymentId,order.getTotal(),order.getOrderNumber());
+  if (paid) {
+   order.setPaymentStatus("paid"); order.setStatus("confirmed");
+   carts.findByUserEmailIgnoreCase(order.getUser().getEmail()).ifPresent(cart -> cart.getItems().removeIf(item -> order.getItems().stream().anyMatch(ordered -> ordered.getProductId().equals(item.getProduct().getId()))));
+  }
+  return paid;
+ }
+ @Transactional(readOnly=true) public String paymentRedirect(String paymentId,String result){
+  var order=orders.findByBkashPaymentId(paymentId).orElseThrow(()->new NoSuchElementException("Payment not found"));
+  return org.springframework.web.util.UriComponentsBuilder.fromUriString(bkash.frontendUrl())
+   .path("/checkout/success").queryParam("orderId",order.getOrderNumber()).queryParam("status",result).build().encode().toUriString();
+ }
  private String[] shipping(String email,OrderRequest r){if(r.addressId()!=null){var a=addresses.findByIdAndUserEmailIgnoreCase(r.addressId(),email).orElseThrow(()->new NoSuchElementException("Address not found"));return new String[]{a.getName(),a.getEmail(),a.getPhone(),a.getDivision(),a.getDistrict(),a.getArea(),a.getAddress()};} if(r.shippingAddress()==null) throw new IllegalArgumentException("Provide addressId or shippingAddress"); var a=r.shippingAddress(); return new String[]{a.name(),a.email(),a.phone(),a.division(),a.district(),a.area(),a.address()};}
  private void validateChoice(String value,Set<String> allowed,String label){if(!allowed.contains(value))throw new IllegalArgumentException("Unsupported "+label);}
  @Transactional(readOnly=true) public List<OrderResponse> list(String email){return orders.findByUserEmailIgnoreCaseOrderByCreatedAtDesc(email).stream().map(OrderResponse::from).toList();}
  @Transactional(readOnly=true) public OrderResponse get(String email,Long id){return OrderResponse.from(orders.findByIdAndUserEmailIgnoreCase(id,email).orElseThrow(()->new NoSuchElementException("Order not found")));}
- @Transactional public OrderResponse cancel(String email,Long id){var o=orders.findByIdAndUserEmailIgnoreCase(id,email).orElseThrow(()->new NoSuchElementException("Order not found")); if(!Set.of("pending","confirmed").contains(o.getStatus()))throw new IllegalArgumentException("Order cannot be cancelled"); o.setStatus("cancelled"); return OrderResponse.from(o);}
+ @Transactional public OrderResponse cancel(String email,Long id){var o=orders.findByIdAndUserEmailIgnoreCase(id,email).orElseThrow(()->new NoSuchElementException("Order not found")); if(!Set.of("pending","confirmed").contains(o.getStatus())||"paid".equals(o.getPaymentStatus()))throw new IllegalArgumentException("Order cannot be cancelled"); cancelAndRestoreStock(o); return OrderResponse.from(o);}
  @Transactional(readOnly=true) public List<OrderResponse> adminList(){return orders.findAllByOrderByCreatedAtDesc().stream().map(OrderResponse::from).toList();}
- @Transactional public OrderResponse updateStatus(Long id,String status){validateChoice(status,Set.of("pending","confirmed","processing","shipped","delivered","cancelled"),"status"); var o=orders.findById(id).orElseThrow(()->new NoSuchElementException("Order not found")); o.setStatus(status); return OrderResponse.from(o);}
+ @Transactional public OrderResponse updateStatus(Long id,String status){validateChoice(status,Set.of("pending","confirmed","processing","shipped","delivered","cancelled"),"status"); var o=orders.findById(id).orElseThrow(()->new NoSuchElementException("Order not found")); if("cancelled".equals(o.getStatus())&& !"cancelled".equals(status))throw new IllegalArgumentException("A cancelled order cannot be reopened"); if("cancelled".equals(status)){if(Set.of("shipped","delivered").contains(o.getStatus())||"paid".equals(o.getPaymentStatus()))throw new IllegalArgumentException("This order cannot be cancelled after shipment or payment"); cancelAndRestoreStock(o);} else o.setStatus(status); return OrderResponse.from(o);}
+ private void cancelAndRestoreStock(Order order){if(!"cancelled".equals(order.getStatus())){order.setStatus("cancelled");order.getItems().forEach(item->products.findLockedById(item.getProductId()).ifPresent(product->product.restoreStock(item.getQuantity())));}}
 }

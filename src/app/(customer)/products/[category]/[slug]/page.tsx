@@ -5,6 +5,7 @@ import { formatPrice, calculateDiscount } from '@/lib/utils';
 import AddToCartAction from './AddToCartAction';
 import { notFound } from 'next/navigation';
 import RelatedProducts from '@/components/product/RelatedProducts';
+import ProductDetailsTabs from './ProductDetailsTabs';
 
 export default async function ProductPage({
   params,
@@ -160,55 +161,7 @@ export default async function ProductPage({
         </div>
       </div>
 
-      {/* Tabs: Description & Full Specs */}
-      <div className="container-site mt-16">
-        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-          <div className="flex border-b border-gray-200 bg-slate-50">
-            <button className="px-8 py-4 font-bold text-blue-700 bg-white border-t-2 border-t-blue-600 text-base">
-              Specifications
-            </button>
-            <button className="px-8 py-4 font-medium text-gray-600 hover:text-gray-900 hover:bg-white text-base">
-              Description
-            </button>
-            <button className="px-8 py-4 font-medium text-gray-600 hover:text-gray-900 hover:bg-white text-base">
-              Reviews ({product.reviewCount})
-            </button>
-          </div>
-          <div className="p-8 lg:p-10">
-            
-            <div className="max-w-4xl">
-              <h3 className="text-xl font-bold mb-6 text-gray-900">Technical Specifications</h3>
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-sm text-left">
-                  <tbody>
-                    {product.specifications.map((spec, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 last:border-0 hover:bg-slate-50 transition-colors">
-                        <td className="w-1/3 py-4 px-6 bg-slate-50/50 font-semibold text-gray-700 border-r border-gray-200">
-                          {spec.label}
-                        </td>
-                        <td className="w-2/3 py-4 px-6 text-gray-900">
-                          {spec.value}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              <h3 className="text-xl font-bold mt-12 mb-4 text-gray-900">Product Description</h3>
-              <div className="prose prose-slate max-w-none text-gray-600 leading-relaxed">
-                <p>{product.description}</p>
-                <p className="mt-4">
-                  Purchase the {product.name} from NexusPC to experience top-tier performance. 
-                  We offer home delivery across all districts in Bangladesh, including Dhaka, Chattogram, Sylhet, and Rajshahi. 
-                  Enjoy EMI facilities with major banks.
-                </p>
-              </div>
-            </div>
-            
-          </div>
-        </div>
-      </div>
+      <ProductDetailsTabs slug={product.slug} productName={product.name} specifications={product.specifications} description={product.description} reviewCount={product.reviewCount} />
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (

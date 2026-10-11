@@ -1,131 +1,93 @@
 'use client';
-// src/app/(customer)/products/FilterSidebar.tsx
+
 import { useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SlidersHorizontal } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-// Mock filter data - in reality, this would come from the API based on current category
 const BRANDS = ['Intel', 'AMD', 'ASUS', 'Gigabyte', 'MSI', 'Corsair', 'Samsung', 'DeepCool'];
 const STOCK_STATUSES = [
   { id: 'in_stock', label: 'In Stock' },
-  { id: 'low_stock', label: 'Low Stock' }
+  { id: 'low_stock', label: 'Low Stock' },
+  { id: 'out_of_stock', label: 'Out of Stock' },
 ];
 
-function FilterContent({ priceRange, setPriceRange }: { priceRange: number[]; setPriceRange: (val: number[]) => void }) {
+function FilterContent({
+  priceRange, setPriceRange, brands, setBrands, stock, setStock, apply,
+}: {
+  priceRange: number[]; setPriceRange: (value: number[]) => void;
+  brands: string[]; setBrands: (value: string[]) => void;
+  stock: string[]; setStock: (value: string[]) => void;
+  apply: () => void;
+}) {
+  const toggle = (values: string[], value: string, checked: boolean | 'indeterminate', setter: (next: string[]) => void) => {
+    setter(checked ? [...values.filter((item) => item !== value), value] : values.filter((item) => item !== value));
+  };
   return (
     <div className="space-y-8">
-      {/* Price Filter */}
       <div>
-        <h3 className="font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100">Price Range</h3>
-        <div className="px-2 mb-6">
-          <Slider
-            defaultValue={[0, 200000]}
-            max={500000}
-            step={1000}
-            value={priceRange}
-            onValueChange={(val) => setPriceRange(Array.isArray(val) ? val as number[] : [val as number])}
-            className="mb-4"
-          />
+        <h3 className="mb-4 border-b border-gray-100 pb-2 font-bold text-gray-900">Price Range</h3>
+        <div className="mb-6 px-2">
+          <Slider min={0} max={2000000} step={5000} defaultValue={[0, 2000000]} value={priceRange} onValueChange={(value) => setPriceRange(Array.isArray(value) ? value as number[] : [value as number])} className="mb-4" />
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <span className="text-xs text-gray-500 mb-1 block">Min (৳)</span>
-            <input 
-              type="number" 
-              value={priceRange[0]} 
-              onChange={(e) => setPriceRange([parseInt(e.target.value) || 0, priceRange[1]])}
-              className="input-base py-1.5 px-2 text-sm"
-            />
-          </div>
-          <div className="flex-1">
-            <span className="text-xs text-gray-500 mb-1 block">Max (৳)</span>
-            <input 
-              type="number" 
-              value={priceRange[1]} 
-              onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value) || 200000])}
-              className="input-base py-1.5 px-2 text-sm"
-            />
-          </div>
+          <label className="flex-1 text-xs text-gray-500">Min (৳)<input type="number" min={0} value={priceRange[0]} onChange={(event) => setPriceRange([Number(event.target.value) || 0, priceRange[1]])} className="input-base mt-1 py-1.5 px-2 text-sm" /></label>
+          <label className="flex-1 text-xs text-gray-500">Max (৳)<input type="number" min={0} value={priceRange[1]} onChange={(event) => setPriceRange([priceRange[0], Number(event.target.value) || 2000000])} className="input-base mt-1 py-1.5 px-2 text-sm" /></label>
         </div>
       </div>
-
-      {/* Brands Filter */}
       <div>
-        <h3 className="font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100">Brands</h3>
-        <div className="space-y-3 max-h-48 overflow-y-auto pr-2 scrollbar-thin">
-          {BRANDS.map((brand) => (
-            <div key={brand} className="flex items-center space-x-2">
-              <Checkbox id={`brand-${brand}`} />
-              <Label htmlFor={`brand-${brand}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 cursor-pointer">
-                {brand}
-              </Label>
-            </div>
-          ))}
+        <h3 className="mb-4 border-b border-gray-100 pb-2 font-bold text-gray-900">Brands</h3>
+        <div className="max-h-48 space-y-3 overflow-y-auto pr-2">
+          {BRANDS.map((brand) => <label key={brand} className="flex cursor-pointer items-center gap-2 text-sm text-gray-700"><Checkbox checked={brands.includes(brand)} onCheckedChange={(checked) => toggle(brands, brand, checked, setBrands)} />{brand}</label>)}
         </div>
       </div>
-
-      {/* Availability Filter */}
       <div>
-        <h3 className="font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100">Availability</h3>
+        <h3 className="mb-4 border-b border-gray-100 pb-2 font-bold text-gray-900">Availability</h3>
         <div className="space-y-3">
-          {STOCK_STATUSES.map((status) => (
-            <div key={status.id} className="flex items-center space-x-2">
-              <Checkbox id={`status-${status.id}`} />
-              <Label htmlFor={`status-${status.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 cursor-pointer">
-                {status.label}
-              </Label>
-            </div>
-          ))}
+          {STOCK_STATUSES.map((status) => <label key={status.id} className="flex cursor-pointer items-center gap-2 text-sm text-gray-700"><Checkbox checked={stock.includes(status.id)} onCheckedChange={(checked) => toggle(stock, status.id, checked, setStock)} />{status.label}</label>)}
         </div>
       </div>
-      
-      <Button className="w-full bg-blue-600 hover:bg-blue-700 font-bold">Apply Filters</Button>
+      <Button type="button" onClick={apply} className="w-full bg-blue-600 font-bold hover:bg-blue-700">Apply Filters</Button>
     </div>
   );
 }
 
 export default function FilterSidebar() {
-  const [priceRange, setPriceRange] = useState([0, 200000]);
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [priceRange, setPriceRange] = useState([Number(searchParams.get('minPrice')) || 0, Number(searchParams.get('maxPrice')) || 2000000]);
+  const [brands, setBrands] = useState(searchParams.get('brands')?.split(',').filter(Boolean) || []);
+  const [stock, setStock] = useState(searchParams.get('stockStatus')?.split(',').filter(Boolean) || []);
 
-  return (
-    <>
-      {/* Mobile Trigger */}
-      <div className="md:hidden">
-        <Sheet>
-          <SheetTrigger render={
-            <Button variant="outline" className="w-full flex items-center gap-2 bg-white font-medium border-gray-200" />
-          }>
-              <SlidersHorizontal size={16} />
-              Filters
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r border-gray-200">
-            <SheetHeader className="p-4 border-b border-gray-100 text-left">
-              <SheetTitle className="flex items-center gap-2">
-                <SlidersHorizontal size={18} />
-                Filters
-              </SheetTitle>
-            </SheetHeader>
-            <div className="p-4 overflow-y-auto h-[calc(100vh-65px)]">
-              <FilterContent priceRange={priceRange} setPriceRange={setPriceRange} />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+  const apply = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (priceRange[0] > 0) params.set('minPrice', String(priceRange[0])); else params.delete('minPrice');
+    if (priceRange[1] < 2000000) params.set('maxPrice', String(priceRange[1])); else params.delete('maxPrice');
+    if (brands.length) params.set('brands', brands.join(',')); else params.delete('brands');
+    if (stock.length) params.set('stockStatus', stock.join(',')); else params.delete('stockStatus');
+    params.delete('page');
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+  const contentProps = { priceRange, setPriceRange, brands, setBrands, stock, setStock, apply };
 
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block w-[280px] flex-shrink-0">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-24">
-          <div className="flex items-center gap-2 mb-6 text-gray-900">
-            <SlidersHorizontal size={20} />
-            <h2 className="text-lg font-bold">Filters</h2>
-          </div>
-          <FilterContent priceRange={priceRange} setPriceRange={setPriceRange} />
-        </div>
-      </div>
-    </>
-  );
+  return <>
+    <div className="md:hidden">
+      <Sheet>
+        <SheetTrigger render={<Button variant="outline" className="w-full items-center gap-2 border-gray-200 bg-white font-medium" />}><SlidersHorizontal size={16} />Filters</SheetTrigger>
+        <SheetContent side="left" className="w-[300px] border-r border-gray-200 p-0 sm:w-[350px]">
+          <SheetHeader className="border-b border-gray-100 p-4 text-left"><SheetTitle className="flex items-center gap-2"><SlidersHorizontal size={18} />Filters</SheetTitle></SheetHeader>
+          <div className="h-[calc(100vh-65px)] overflow-y-auto p-4"><FilterContent {...contentProps} /></div>
+        </SheetContent>
+      </Sheet>
+    </div>
+    <aside className="sticky top-24 hidden w-[280px] shrink-0 self-start rounded-xl border border-gray-100 bg-white p-6 shadow-sm md:block">
+      <div className="mb-6 flex items-center gap-2 text-gray-900"><SlidersHorizontal size={20} /><h2 className="text-lg font-bold">Filters</h2></div>
+      <FilterContent {...contentProps} />
+    </aside>
+  </>;
 }

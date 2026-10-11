@@ -13,17 +13,19 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { couponService, orderService } from '@/lib/services/shopService';
 import { notify } from '@/components/ui/toast';
+import { useIsAuthenticated, useIsClient } from '@/lib/authState';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, getSubtotal, couponDiscount, couponCode, applyCoupon, removeCoupon, clearCart } = useCartStore();
+  const { items, getSubtotal, couponDiscount, couponCode, applyCoupon, removeCoupon, clearCart, hasHydrated } = useCartStore();
   const [couponInput, setCouponInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState('inside_dhaka');
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [division, setDivision] = useState('dhaka');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const bkashEnabled = process.env.NEXT_PUBLIC_BKASH_ENABLED === 'true';
+  const isSignedIn = useIsAuthenticated();
+  const isClient = useIsClient();
 
   const subtotal = getSubtotal();
   const deliveryCharge = deliveryMethod === 'inside_dhaka' ? 80 : 150;
@@ -41,6 +43,23 @@ export default function CheckoutPage() {
       notify.error(error instanceof Error ? error.message : 'Coupon code is not valid.');
     } finally { setIsApplyingCoupon(false); }
   };
+
+  if (!hasHydrated || !isClient) {
+    return <div className="container-site min-h-96 py-20 text-center text-gray-500" aria-live="polite">Loading checkout…</div>;
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="container-site py-20 text-center">
+        <h1 className="mb-3 text-2xl font-bold">Sign in to continue to checkout</h1>
+        <p className="mb-6 text-gray-600">Your cart will be here after you sign in or create an account.</p>
+        <div className="flex justify-center gap-3">
+          <Link href="/login?redirect=%2Fcheckout" className="btn-primary">Login</Link>
+          <Link href="/register" className="btn-outline">Create account</Link>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -71,12 +90,13 @@ export default function CheckoutPage() {
         paymentMethod,
         couponCode: couponCode || undefined,
       });
-      clearCart();
-      if (order.paymentMethod !== 'bkash') notify.success('Order placed successfully', `Order #${order.id} is confirmed.`);
-      if (order.paymentMethod === 'bkash' && order.paymentUrl) {
+      if (order.paymentMethod === 'bkash') {
+        if (!order.paymentUrl) throw new Error('Could not start bKash payment. Please try again.');
         window.location.assign(order.paymentUrl);
         return;
       }
+      clearCart();
+      notify.success('Order placed successfully', `Order #${order.id} is confirmed.`);
       router.push(`/checkout/success?orderId=${order.id}`);
     } catch (error) {
       notify.error(error instanceof Error ? error.message : 'Unable to place order. Please try again.');
@@ -197,7 +217,7 @@ export default function CheckoutPage() {
                 Payment Method
               </h2>
               
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className={`grid grid-cols-1 ${bkashEnabled ? 'md:grid-cols-2' : ''} gap-4`}>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div onClick={() => setPaymentMethod('cod')} className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 text-center transition-colors cursor-pointer ${paymentMethod === 'cod' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200 hover:border-blue-200'}`}>
                   <RadioGroupItem checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} value="cod" id="pay_cod" className="sr-only" />
                   <Label htmlFor="pay_cod" className="cursor-pointer flex flex-col items-center w-full h-full">
@@ -209,24 +229,19 @@ export default function CheckoutPage() {
                   </Label>
                 </div>
 
-                {bkashEnabled && (
-                  <div onClick={() => setPaymentMethod('bkash')} className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 text-center transition-colors cursor-pointer ${paymentMethod === 'bkash' ? 'border-pink-600 bg-pink-50/50' : 'border-gray-200 hover:border-pink-200'}`}>
-                    <RadioGroupItem checked={paymentMethod === 'bkash'} onChange={() => setPaymentMethod('bkash')} value="bkash" id="pay_bkash" className="sr-only" />
-                    <Label htmlFor="pay_bkash" className="cursor-pointer flex flex-col items-center w-full h-full">
+                <button type="button" onClick={() => notify.info('Coming soon', 'bKash payment will be available soon.')} className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-pink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500">
                       <div className="w-16 h-12 bg-white rounded-lg flex items-center justify-center mb-3 overflow-hidden">
                         <Image src="/bkash-logo.png" alt="bKash" width={64} height={48} className="h-full w-full object-contain" />
                       </div>
                       <span className="font-bold text-gray-900">bKash Payment</span>
-                      <span className="text-xs text-gray-500 mt-1">Pay securely with bKash</span>
-                    </Label>
-                  </div>
-                )}
+                      <span className="text-xs font-medium text-gray-500">Coming soon</span>
+                </button>
+                <button type="button" onClick={() => notify.info('Coming soon', 'Nagad payment will be available soon.')} className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">
+                  <div className="mb-3 flex h-12 w-16 items-center justify-center rounded-lg bg-orange-50 text-lg font-extrabold text-orange-600">Nagad</div>
+                  <span className="font-bold text-gray-900">Nagad Payment</span>
+                  <span className="text-xs font-medium text-gray-500">Coming soon</span>
+                </button>
               </RadioGroup>
-              {bkashEnabled && paymentMethod === 'bkash' && (
-                <div className="mt-4 rounded-lg border border-pink-100 bg-pink-50 p-4 text-sm text-pink-900">
-                  bKash payment will be confirmed after your order is submitted. Keep your bKash transaction details ready.
-                </div>
-              )}
             </div>
 
           </div>

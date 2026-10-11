@@ -286,6 +286,7 @@ export default function AdminPage() {
             <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <div className="mb-5 flex items-center justify-between"><div><h2 className="font-bold text-gray-900">Promo codes</h2><p className="text-xs text-gray-500">{promoCodes.length} code{promoCodes.length === 1 ? '' : 's'} configured</p></div></div>
               {promoCodes.length ? <div className="space-y-3">{promoCodes.map((promo) => {
+                // eslint-disable-next-line react-hooks/purity -- Promo status must reflect the current time.
                 const now = Date.now(); const starts = new Date(promo.startsAt).getTime(); const ends = new Date(promo.endsAt).getTime();
                 const status = now < starts ? 'Scheduled' : now > ends ? 'Expired' : 'Active';
                 const badge = status === 'Active' ? 'bg-green-100 text-green-700' : status === 'Scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600';

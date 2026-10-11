@@ -23,7 +23,6 @@ export default function SearchBar() {
   useEffect(() => {
     let cancelled = false;
     if (query.trim().length < 2) {
-      setResults([]);
       return;
     }
     productService.search(query.trim()).then((items) => {
@@ -72,6 +71,8 @@ export default function SearchBar() {
     setQuery('');
   };
 
+  const visibleResults = query.trim().length >= 2 ? results : [];
+
   return (
     <div ref={containerRef} className="relative w-full">
       <form onSubmit={handleSubmit} className="relative">
@@ -119,12 +120,12 @@ export default function SearchBar() {
       {isOpen && (
         <div id="search-results-popup" className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
           {/* Product results */}
-          {results.length > 0 && (
+          {visibleResults.length > 0 && (
             <div>
               <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
                 Products
               </div>
-              {results.map((product) => (
+              {visibleResults.map((product) => (
                 <Link
                   key={product.id}
                   href={`/products/${product.categorySlug}/${product.slug}`}

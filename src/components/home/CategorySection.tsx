@@ -2,14 +2,28 @@
 import CategoryCard from '@/components/ui/CategoryCard';
 import { categoryService } from '@/lib/services/categoryService';
 import type { Category } from '@/types/product';
+import { categories as fallbackCategories } from '@/data/categories';
 
 export default async function CategorySection() {
   let displayCategories: Category[] = [];
   try {
     const categories = await categoryService.list();
-    displayCategories = categories.slice(0, 12);
+    const visible = categories.filter((category) => !['cpu-cooler', 'case-fan', 'hdd'].includes(category.slug));
+    const ssd = visible.find((category) => category.slug === 'ssd');
+    displayCategories = visible.map((category) => category.slug === 'ssd' ? {
+      ...category,
+      slug: 'storage',
+      name: 'Storage',
+      description: 'SSD and hard drive storage for your PC',
+      productCount: (category.productCount || 0) + (categories.find((item) => item.slug === 'hdd')?.productCount || 0),
+    } : category);
+    if (!displayCategories.some((category) => category.slug === 'mouse')) {
+      displayCategories.push({ id: 'mouse', slug: 'mouse', name: 'Mouse', description: 'Mice for gaming and everyday use', icon: 'Mouse', productCount: 0 });
+    }
+    if (!ssd) displayCategories = displayCategories.filter((category) => category.slug !== 'storage');
+    displayCategories = displayCategories.slice(0, 12);
   } catch {
-    displayCategories = [];
+    displayCategories = fallbackCategories;
   }
 
   return (

@@ -48,6 +48,7 @@ export function setAuthToken(token: string | null) {
   if (typeof window === 'undefined') return;
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
+  window.dispatchEvent(new Event('nexuspc-auth-change'));
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {

@@ -4,6 +4,7 @@ import FilterSidebar from '../FilterSidebar';
 import { SlidersHorizontal } from 'lucide-react';
 import type { SortOption, StockStatus } from '@/types/product';
 import { categories } from '@/data/categories';
+import ProductResultsToolbar from '../ProductResultsToolbar';
 
 export default async function CategoryPage({
   params,
@@ -29,7 +30,11 @@ export default async function CategoryPage({
   
   const sort = (resolvedSearchParams.sort as SortOption) || 'featured';
 
-  const products = await productService.filter(filters, sort);
+  const allProducts = await productService.filter(filters, sort);
+  const pageSize = 12;
+  const pageCount = Math.max(1, Math.ceil(allProducts.length / pageSize));
+  const page = Math.min(pageCount - 1, Math.max(0, Number(resolvedSearchParams.page) || 0));
+  const products = allProducts.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
     <div className="bg-slate-50 min-h-screen py-8">
@@ -52,24 +57,7 @@ export default async function CategoryPage({
           <FilterSidebar />
           
           <div className="flex-1">
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-              <h2 className="text-xl font-bold text-gray-900">
-                {category?.name || 'Products'} <span className="text-sm font-normal text-gray-500 ml-2">({products.length} items)</span>
-              </h2>
-              
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-sm text-gray-500 font-medium whitespace-nowrap">Sort By:</span>
-                <select 
-                  className="input-base py-1.5 px-3 text-sm min-w-[150px] bg-gray-50 cursor-pointer"
-                  defaultValue={sort}
-                >
-                  <option value="featured">Featured</option>
-                  <option value="price_asc">Price: Low to High</option>
-                  <option value="price_desc">Price: High to Low</option>
-                  <option value="newest">Newest Arrivals</option>
-                </select>
-              </div>
-            </div>
+            <ProductResultsToolbar title={category?.name || 'Products'} count={allProducts.length} sort={sort} page={page} pageSize={pageSize} />
 
             {products.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center flex flex-col items-center">

@@ -33,7 +33,10 @@ public class BkashService {
                         "intent", "sale",
                         "merchantInvoiceNumber", order.getOrderNumber()))
                 .retrieve().body(Map.class);
-        if (response == null || !"0000".equals(String.valueOf(response.get("statusCode")))) {
+        if (response == null || !"0000".equals(String.valueOf(response.get("statusCode")))
+                || response.get("paymentID") == null || response.get("bkashURL") == null
+                || String.valueOf(response.get("paymentID")).isBlank()
+                || String.valueOf(response.get("bkashURL")).isBlank()) {
             throw new IllegalStateException("Unable to initialize bKash payment");
         }
 
@@ -44,15 +47,25 @@ public class BkashService {
         return properties.enabled();
     }
 
-    public boolean execute(String paymentId) {
+    public boolean execute(String paymentId, BigDecimal expectedAmount, String expectedInvoice) {
         String token = token();
         Map<?, ?> response = client.post().uri("/tokenized/checkout/execute/{paymentId}", paymentId)
                 .headers(headers -> headers.setBearerAuth(token))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("paymentID", paymentId))
                 .retrieve().body(Map.class);
-        return response != null && "0000".equals(String.valueOf(response.get("statusCode")))
-                && "Completed".equalsIgnoreCase(String.valueOf(response.get("transactionStatus")));
+        if (response == null || !"0000".equals(String.valueOf(response.get("statusCode")))
+                || !"Completed".equalsIgnoreCase(String.valueOf(response.get("transactionStatus")))) {
+            return false;
+        }
+        try {
+            BigDecimal paidAmount = new BigDecimal(String.valueOf(response.get("amount")));
+            return paidAmount.compareTo(expectedAmount) == 0
+                    && "BDT".equalsIgnoreCase(String.valueOf(response.get("currency")))
+                    && expectedInvoice.equals(String.valueOf(response.get("merchantInvoiceNumber")));
+        } catch (RuntimeException invalidResponse) {
+            return false;
+        }
     }
 
     public String frontendUrl() {

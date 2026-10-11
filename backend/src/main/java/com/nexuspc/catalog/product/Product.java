@@ -152,6 +152,11 @@ public class Product {
         this.stockCount = stockCount;
     }
 
+    public void restoreStock(int quantity) {
+        if (quantity <= 0) throw new IllegalArgumentException("Quantity must be positive");
+        this.stockCount += quantity;
+    }
+
     public double getRating() {
         return rating;
     }

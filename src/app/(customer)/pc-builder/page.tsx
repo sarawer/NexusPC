@@ -12,9 +12,113 @@ import { notify } from '@/components/ui/toast';
 import { FeedbackMessage } from '@/components/ui/feedback-message';
 import {
   Trash2, ShoppingCart, 
-  Printer, Share2, Plus, AlertTriangle, CheckCircle
+  Download, Plus, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
+
+function downloadBuildPdf(buildName: string, components: { label: string; name: string; price: number }[], total: number) {
+  const safeText = (value: string) => value.normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  const money = (value: number) => `BDT ${Math.round(value).toLocaleString('en-US')}`;
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const navy = '0.06 0.10 0.19';
+  const blue = '0.12 0.36 0.96';
+  const slate = '0.34 0.39 0.48';
+  const light = '0.95 0.96 0.98';
+  const escape = (value: string) => `(${safeText(value)})`;
+  const text = (commands: string[], value: string, x: number, y: number, size = 10, font = 'F1', color = '0.10 0.14 0.22') => {
+    commands.push(`${color} rg BT /${font} ${size} Tf ${x} ${y} Td ${escape(value)} Tj ET`);
+  };
+  const rect = (commands: string[], x: number, y: number, width: number, height: number, color: string) => {
+    commands.push(`${color} rg ${x} ${y} ${width} ${height} re f`);
+  };
+  const wrapText = (value: string, maxLength: number) => {
+    const words = safeText(value).split(/\s+/);
+    const lines: string[] = [];
+    let line = '';
+    for (const word of words) {
+      if (line && `${line} ${word}`.length > maxLength) { lines.push(line); line = word; }
+      else line = line ? `${line} ${word}` : word;
+    }
+    if (line) lines.push(line);
+    return lines.slice(0, 2);
+  };
+  const rowsPerPage = 12;
+  const chunks: typeof components[] = [];
+  for (let i = 0; i < components.length; i += rowsPerPage) chunks.push(components.slice(i, i + rowsPerPage));
+  const pages = chunks.map((rows, pageIndex) => {
+    const commands: string[] = [];
+    rect(commands, 0, 700, pageWidth, 142, navy);
+    rect(commands, 0, 700, 7, 142, blue);
+    text(commands, 'NEXUS', 40, 795, 22, 'F2', '1 1 1');
+    text(commands, 'PC', 112, 795, 22, 'F2', '0.38 0.62 1');
+    text(commands, 'CUSTOM PC BUILD', 40, 770, 9, 'F2', '0.75 0.80 0.90');
+    text(commands, safeText(buildName.trim() || 'My Custom Build').slice(0, 58), 40, 733, 20, 'F2', '1 1 1');
+    text(commands, `Prepared ${new Date().toLocaleDateString('en-GB')}  |  ${components.length} selected components`, 40, 714, 9, 'F1', '0.75 0.80 0.90');
+
+    text(commands, pageIndex === 0 ? 'COMPONENT SUMMARY' : 'COMPONENT SUMMARY (CONTINUED)', 40, 674, 10, 'F2', navy);
+    const tableTop = 652;
+    rect(commands, 40, tableTop - 26, 515, 26, blue);
+    text(commands, '#', 50, tableTop - 17, 8, 'F2', '1 1 1');
+    text(commands, 'COMPONENT / PRODUCT', 76, tableTop - 17, 8, 'F2', '1 1 1');
+    text(commands, 'QTY', 416, tableTop - 17, 8, 'F2', '1 1 1');
+    text(commands, 'UNIT PRICE', 454, tableTop - 17, 8, 'F2', '1 1 1');
+    text(commands, 'TOTAL', 514, tableTop - 17, 8, 'F2', '1 1 1');
+    let y = tableTop - 26;
+    rows.forEach((component, index) => {
+      const rowHeight = 38;
+      y -= rowHeight;
+      if (index % 2 === 0) rect(commands, 40, y, 515, rowHeight, light);
+      text(commands, String(pageIndex * rowsPerPage + index + 1).padStart(2, '0'), 50, y + 22, 9, 'F2', slate);
+      text(commands, component.label.toUpperCase().slice(0, 24), 76, y + 22, 7, 'F2', blue);
+      wrapText(component.name, 48).forEach((line, lineIndex) => text(commands, line, 76, y + 9 - lineIndex * 10, 8, 'F1'));
+      text(commands, '1', 421, y + 16, 9, 'F1', slate);
+      text(commands, money(component.price), 452, y + 16, 8, 'F1', slate);
+      text(commands, money(component.price), 510, y + 16, 8, 'F2');
+      commands.push(`0.84 0.87 0.91 RG 0.5 w 40 ${y} m 555 ${y} l S`);
+    });
+    y -= 18;
+    if (pageIndex === chunks.length - 1) {
+      rect(commands, 40, y - 58, 515, 58, navy);
+      text(commands, 'ESTIMATED BUILD TOTAL', 58, y - 25, 9, 'F2', '0.75 0.80 0.90');
+      text(commands, money(total), 58, y - 47, 18, 'F2', '1 1 1');
+      text(commands, 'Prices are estimates and may change. Confirm availability before ordering.', 40, 58, 8, 'F1', slate);
+    }
+    text(commands, 'NEXUSPC  |  BUILD YOUR DREAM', 40, 34, 8, 'F2', blue);
+    text(commands, `PAGE ${pageIndex + 1} OF ${chunks.length}`, 493, 34, 8, 'F1', slate);
+    return commands.join('\n');
+  });
+
+  const objects: string[] = [];
+  const addObject = (body: string) => { objects.push(body); return objects.length; };
+  const catalogId = addObject('');
+  const pagesId = addObject('');
+  const regularFontId = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  const boldFontId = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+  const pageIds = pages.map((stream) => {
+    const contentId = addObject(`<< /Length ${new TextEncoder().encode(stream).length} >>\nstream\n${stream}\nendstream`);
+    return addObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+  });
+  objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+  objects[pagesId - 1] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(new TextEncoder().encode(pdf).length);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = new TextEncoder().encode(pdf).length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => { pdf += `${String(offset).padStart(10, '0')} 00000 n \n`; });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  const blob = new Blob([pdf], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${(buildName || 'nexuspc-build').trim().replace(/[^a-z0-9-_]+/gi, '-').toLowerCase() || 'nexuspc-build'}.pdf`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export default function PCBuilderPage() {
   const { slots, buildName, setBuildName, removeComponent, getTotalPrice, getWarnings, isComplete } = usePCBuilderStore();
@@ -75,6 +179,20 @@ export default function PCBuilderPage() {
     }
   };
 
+  const handleDownloadBuild = () => {
+    const components = slots.filter((slot) => slot.selectedComponent).map((slot) => ({
+      label: slot.label,
+      name: slot.selectedComponent!.name,
+      price: slot.selectedComponent!.price,
+    }));
+    if (components.length === 0) {
+      notify.info('Choose components before downloading your build.');
+      return;
+    }
+    downloadBuildPdf(buildName, components, total);
+    notify.success('Build list downloaded as PDF.');
+  };
+
   const getIcon = (iconName: string) => {
     const IconComponent = (Icons as unknown as Record<string, React.ElementType>)[iconName] || Icons.Box;
     return <IconComponent size={24} className="text-gray-400" />;
@@ -115,11 +233,8 @@ export default function PCBuilderPage() {
             <button type="button" onClick={handleSaveBuild} disabled={isSaving} className="flex-1 sm:flex-none px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors">
               {isSaving ? 'Saving...' : 'Save Build'}
             </button>
-            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors">
-              <Share2 size={16} /> Share
-            </button>
-            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors">
-              <Printer size={16} /> Print
+            <button type="button" onClick={handleDownloadBuild} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors">
+              <Download size={16} /> Download Build
             </button>
           </div>
         </div>

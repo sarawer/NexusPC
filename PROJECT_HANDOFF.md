@@ -27,7 +27,7 @@ treated as authoritative for prices, stock, discounts, or permissions.
 | Backend deployment | Docker | `backend/Dockerfile`, Java 21 runtime |
 | Database | Azure Database for MySQL Flexible Server | Host: `nexuspc.mysql.database.azure.com`, port `3306`, SSL required |
 | Images | Cloudinary | Credentials are stored only in hosting environment variables |
-| Payments | COD active; bKash disabled | Do not enable bKash without completing callback and verification work |
+| Payments | COD active; bKash Tokenized Checkout implemented but disabled | Keep disabled until sandbox and production merchant credentials are configured and verified |
 | Previous database | Aiven MySQL | No longer the active database; do not assume it contains current data |
 
 The production database is a newly created Azure MySQL database. Default categories
@@ -367,10 +367,20 @@ CLOUDINARY_CLOUD_NAME=<secret-managed value>
 CLOUDINARY_API_KEY=<secret-managed value>
 CLOUDINARY_API_SECRET=<secret-managed value>
 BKASH_ENABLED=false
+BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v1.2.0-beta
+BKASH_USERNAME=<bKash merchant username>
+BKASH_PASSWORD=<bKash merchant password>
+BKASH_APP_KEY=<bKash merchant app key>
+BKASH_APP_SECRET=<bKash merchant app secret>
+BKASH_CALLBACK_URL=https://nexuspc-backend.onrender.com/api/payments/bkash/callback
 ```
 
-Optional bKash variables exist in `application.properties`, but bKash is
-intentionally disabled. Do not enable it with placeholder credentials.
+The bKash flow creates a hosted checkout, executes and verifies successful
+payments on the server (including amount, currency, and invoice), and redirects
+to a result page. Failed/cancelled attempts release reserved stock. Keep
+`BKASH_ENABLED=false` and `NEXT_PUBLIC_BKASH_ENABLED=false` until bKash has
+issued credentials and the full sandbox flow has been verified. For production,
+use the production API base URL supplied by bKash rather than the sandbox URL.
 
 ### Backend: local IntelliJ or shell
 

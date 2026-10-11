@@ -10,8 +10,8 @@ interface RadioGroupProps extends React.ComponentProps<"div"> {
 
 function RadioGroup({
   className,
-  value: _value,
-  onValueChange: _onValueChange,
+  value,
+  onValueChange,
   children,
   ...props
 }: RadioGroupProps) {
@@ -23,9 +23,15 @@ function RadioGroup({
       {...props}
     >
       {React.Children.map(children, (child) => {
-        if (!React.isValidElement(child)) return child;
-        // Pass value/onValueChange context through data attributes or directly
-        return child;
+        if (!React.isValidElement<RadioGroupItemProps>(child) || typeof child.props.value !== 'string') return child;
+        const itemProps = child.props;
+        return React.cloneElement(child, {
+          checked: value === itemProps.value,
+          onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+            itemProps.onChange?.(event);
+            onValueChange?.(itemProps.value);
+          },
+        });
       })}
     </div>
   )

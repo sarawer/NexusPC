@@ -35,6 +35,18 @@ services:
         sync: false
       - key: BKASH_ENABLED
         value: "false"
+      - key: BKASH_BASE_URL
+        value: https://tokenized.sandbox.bka.sh/v1.2.0-beta
+      - key: BKASH_USERNAME
+        sync: false
+      - key: BKASH_PASSWORD
+        sync: false
+      - key: BKASH_APP_KEY
+        sync: false
+      - key: BKASH_APP_SECRET
+        sync: false
+      - key: BKASH_CALLBACK_URL
+        sync: false
       - key: FRONTEND_URL
         sync: false
       - key: RESEND_API_KEY

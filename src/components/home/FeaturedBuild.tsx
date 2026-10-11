@@ -26,7 +26,7 @@ export default function FeaturedBuild() {
       </div>
       
       <div className="flex flex-col gap-3 mb-6">
-        {buildItems.map((item, i) => (
+        {buildItems.map((item) => (
           item && (
             <div key={item.id} className="flex justify-between items-center text-sm border-b border-slate-700/50 pb-3 last:border-0 last:pb-0">
               <div className="flex flex-col">

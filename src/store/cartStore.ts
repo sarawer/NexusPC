@@ -6,6 +6,8 @@ import type { CartItem } from '@/types/cart';
 
 interface CartStore {
   items: CartItem[];
+  hasHydrated: boolean;
+  setHasHydrated: (value: boolean) => void;
   isOpen: boolean;
   couponCode: string;
   couponDiscount: number;
@@ -21,6 +23,7 @@ interface CartStore {
   getTotal: (deliveryCharge: number) => number;
   getItemCount: () => number;
   replaceItems: (items: CartItem[]) => void;
+  mergeItems: (items: CartItem[]) => void;
 }
 
 
@@ -28,6 +31,8 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      hasHydrated: false,
+      setHasHydrated: (value) => set({ hasHydrated: value }),
       isOpen: false,
       couponCode: '',
       couponDiscount: 0,
@@ -91,9 +96,16 @@ export const useCartStore = create<CartStore>()(
         return get().items.reduce((sum, i) => sum + i.quantity, 0);
       },
       replaceItems: (items) => set({ items }),
+      mergeItems: (remoteItems) => set((state) => {
+        const merged = new Map(state.items.map((item) => [item.productId, item]));
+        remoteItems.forEach((item) => merged.set(item.productId, item));
+        return { items: [...merged.values()] };
+      }),
     }),
     {
       name: 'nexuspc-cart',
+      partialize: (state) => ({ items: state.items, couponCode: state.couponCode, couponDiscount: state.couponDiscount }),
+      onRehydrateStorage: () => (state) => state?.setHasHydrated(true),
     }
   )
 );

@@ -6,11 +6,10 @@ import type { PCBuildSlot, CompatibilityWarning, PCBuildComponent } from '@/type
 
 const DEFAULT_SLOTS: PCBuildSlot[] = [
   { key: 'cpu', label: 'Processor (CPU)', required: true, categorySlug: 'cpu', icon: 'Cpu' },
-  { key: 'cpu-cooler', label: 'CPU Cooler', required: false, categorySlug: 'cpu-cooler', icon: 'Wind' },
   { key: 'motherboard', label: 'Motherboard', required: true, categorySlug: 'motherboard', icon: 'CircuitBoard' },
   { key: 'ram', label: 'RAM', required: true, categorySlug: 'ram', icon: 'MemoryStick' },
   { key: 'gpu', label: 'Graphics Card (GPU)', required: false, categorySlug: 'gpu', icon: 'Monitor' },
-  { key: 'storage', label: 'Storage (SSD/HDD)', required: true, categorySlug: 'ssd', icon: 'HardDrive' },
+  { key: 'storage', label: 'Storage', required: true, categorySlug: 'storage', icon: 'HardDrive' },
   { key: 'psu', label: 'Power Supply (PSU)', required: true, categorySlug: 'psu', icon: 'Zap' },
   { key: 'case', label: 'PC Case', required: true, categorySlug: 'case', icon: 'Box' },
 ];
@@ -111,6 +110,17 @@ export const usePCBuilderStore = create<PCBuilderStore>()(
     }),
     {
       name: 'nexuspc-builder',
+      version: 2,
+      migrate: (persistedState: unknown) => {
+        const stored = persistedState as Partial<PCBuilderStore>;
+        return {
+          ...stored,
+          slots: DEFAULT_SLOTS.map((slot) => ({
+            ...slot,
+            selectedComponent: stored.slots?.find((saved) => saved.key === slot.key)?.selectedComponent,
+          })),
+        };
+      },
     }
   )
 );

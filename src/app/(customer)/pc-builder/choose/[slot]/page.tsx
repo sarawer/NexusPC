@@ -19,32 +19,31 @@ export default function ChooseComponentPage() {
   const slots = usePCBuilderStore((state) => state.slots);
   const setComponent = usePCBuilderStore((state) => state.setComponent);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
+  const [loadedSlotKey, setLoadedSlotKey] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{ slotKey: string; message: string } | null>(null);
   const slot = useMemo<PCBuildSlot | undefined>(
     () => slots.find((item) => item.key === params.slot),
     [params.slot, slots],
   );
+  const loading = Boolean(slot && loadedSlotKey !== slot.key);
+  const error = slot && loadError?.slotKey === slot.key ? loadError.message : '';
 
   useEffect(() => {
-    if (!slot) {
-      setLoading(false);
-      setError('This builder component is not available.');
-      return;
-    }
+    if (!slot) return;
 
     let cancelled = false;
-    setLoading(true);
     productService.getByCategory(slot.categorySlug)
       .then((items) => {
-        if (!cancelled) setProducts(items.filter((item) => item.stockCount > 0));
+        if (!cancelled) {
+          setProducts(items.filter((item) => item.stockCount > 0));
+          setLoadedSlotKey(slot.key);
+        }
       })
       .catch(() => {
-        if (!cancelled) setError('Unable to load components right now.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoadError({ slotKey: slot.key, message: 'Unable to load components right now.' });
+          setLoadedSlotKey(slot.key);
+        }
       });
 
     return () => { cancelled = true; };
@@ -76,16 +75,17 @@ export default function ChooseComponentPage() {
           <p className="mt-1 text-sm text-gray-500">Select an in-stock product from the database.</p>
         </div>
 
-        {loading && (
+        {!slot && <FeedbackMessage className="rounded-xl p-5">This builder component is not available.</FeedbackMessage>}
+        {slot && loading && (
           <div className="flex items-center justify-center rounded-xl bg-white p-16 text-gray-500">
             <Loader2 className="mr-2 animate-spin" size={20} /> Loading components...
           </div>
         )}
-        {!loading && error && <FeedbackMessage className="rounded-xl p-5">{error}</FeedbackMessage>}
-        {!loading && !error && products.length === 0 && (
+        {slot && !loading && error && <FeedbackMessage className="rounded-xl p-5">{error}</FeedbackMessage>}
+        {slot && !loading && !error && products.length === 0 && (
           <div className="rounded-xl bg-white p-16 text-center text-gray-500">No in-stock products are available for this slot.</div>
         )}
-        {!loading && !error && products.length > 0 && (
+        {slot && !loading && !error && products.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {products.map((product) => (
               <button key={product.id} type="button" onClick={() => choose(product)} className="group rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-500 hover:shadow-md">

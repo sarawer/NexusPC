@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import { useIsClient } from '@/lib/authState';
 
 const PALETTES = [
   { id: 'original', label: 'Original (Blue)' },
@@ -11,19 +12,15 @@ const PALETTES = [
 ];
 
 export default function PaletteSwitcher() {
-  const [mounted, setMounted] = useState(false);
-  const [palette, setPalette] = useState('original');
+  const mounted = useIsClient();
+  const [palette, setPalette] = useState(() => typeof window === 'undefined' ? 'original' : localStorage.getItem('nexus_palette') || 'original');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem('nexus_palette') || 'original';
-    setPalette(saved);
-    if (saved !== 'original') {
-      document.documentElement.setAttribute('data-palette', saved);
-    }
-  }, []);
+    if (palette === 'original') document.documentElement.removeAttribute('data-palette');
+    else document.documentElement.setAttribute('data-palette', palette);
+  }, [palette]);
 
   // Close on outside click or Escape
   useEffect(() => {
@@ -53,8 +50,6 @@ export default function PaletteSwitcher() {
 
   if (!mounted) return null;
   if (process.env.NODE_ENV === 'production') return null;
-
-  const current = PALETTES.find(p => p.id === palette);
 
   return (
     <div ref={ref} className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2">

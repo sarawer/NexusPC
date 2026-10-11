@@ -11,16 +11,20 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const loadOrders = useCallback(async () => {
-    setIsLoading(true);
+  const loadOrders = useCallback(async (showLoading = false) => {
+    if (showLoading) setIsLoading(true);
     try { setOrders(await orderService.list()); setLoadError(''); }
     catch { setLoadError('Could not load your orders. Please try again.'); }
     finally { setIsLoading(false); }
   }, []);
   useEffect(() => {
-    void loadOrders();
-    window.addEventListener('focus', loadOrders);
-    return () => window.removeEventListener('focus', loadOrders);
+    const handleFocus = () => { void loadOrders(true); };
+    const initialLoad = window.setTimeout(() => { void loadOrders(); }, 0);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [loadOrders]);
 
   const getStatusIcon = (status: string) => {
@@ -47,7 +51,7 @@ export default function OrdersPage() {
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
       <div className="mb-6 flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
         <h2 className="text-xl font-bold text-gray-900">My Orders</h2>
-        <button type="button" onClick={() => void loadOrders()} disabled={isLoading} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:border-blue-300 hover:text-blue-700 disabled:opacity-60">
+        <button type="button" onClick={() => void loadOrders(true)} disabled={isLoading} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:border-blue-300 hover:text-blue-700 disabled:opacity-60">
           <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
