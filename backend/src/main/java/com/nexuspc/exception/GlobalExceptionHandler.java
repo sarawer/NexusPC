@@ -10,6 +10,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.dao.DataIntegrityViolationException;
 import java.util.NoSuchElementException;
+import com.nexuspc.admin.AdminVerificationException;
 
 import java.time.Instant;
 import java.util.stream.Collectors;
@@ -24,6 +25,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiError> handleUnauthorized(BadCredentialsException e, HttpServletRequest request) {
         return error(HttpStatus.UNAUTHORIZED, "Invalid email or password", request);
+    }
+    @ExceptionHandler(AdminVerificationException.class)
+    public ResponseEntity<ApiError> handleAdminVerification(AdminVerificationException e, HttpServletRequest request) {
+        return error(HttpStatus.FORBIDDEN, e.getMessage(), request);
     }
     @ExceptionHandler({IllegalArgumentException.class, DataIntegrityViolationException.class})
     public ResponseEntity<ApiError> handleConflict(Exception e, HttpServletRequest request) {

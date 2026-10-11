@@ -6,6 +6,15 @@ export interface Category {
   slug: string;
 }
 
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  role: 'CUSTOMER' | 'ADMIN';
+  createdAt: string;
+}
+
 export interface ProductInput {
   slug: string;
   name: string;
@@ -30,6 +39,12 @@ export interface ProductInput {
 
 export const adminService = {
   categories: () => apiFetch<Category[]>('/categories'),
+  users: () => apiFetch<AdminUser[]>('/admin/customers'),
+  makeAdmin: (id: number, currentPassword: string) =>
+    apiFetch<AdminUser>(`/admin/customers/${id}/make-admin`, {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword }),
+    }),
   createCategory: (input: { name: string; slug: string; description?: string }) =>
     apiFetch<Category>('/admin/categories', { method: 'POST', body: JSON.stringify(input) }),
   createProduct: (input: ProductInput) =>
