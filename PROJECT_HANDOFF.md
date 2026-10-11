@@ -175,33 +175,21 @@ rule applies.
 
 ### Roles
 
-`UserRole` currently contains:
-
-```text
-CUSTOMER
-ADMIN
-```
-
-Admin controllers use `@PreAuthorize("hasRole('ADMIN')")`. Never rely only on
+`UserRole` contains `CUSTOMER`, `ADMIN`, and `SUPER_ADMIN`. Admin controllers allow
+both admin roles; only `SUPER_ADMIN` can change a customer's or admin's role.
+Super-admin accounts cannot be changed from the admin panel. Never rely only on
 frontend route hiding for authorization.
 
 ### Admin user management
 
 ```text
 GET  /api/admin/customers
-POST /api/admin/customers/{id}/make-admin
+PUT  /api/admin/customers/{id}/role (SUPER_ADMIN only)
 ```
 
-The promote request is:
-
-```json
-{ "currentPassword": "the-current-admin-password" }
-```
-
-The backend resolves the currently authenticated admin, verifies the supplied
-password with BCrypt, and only then changes the target user's role. A mismatch
-returns `403` and does not change the target. The admin should log out and log
-back in after promotion so the new role is reflected in a fresh JWT.
+The role change request includes the target role (`CUSTOMER` or `ADMIN`) and the
+current super-admin password. The backend verifies the password with BCrypt and
+never permits creating or changing a `SUPER_ADMIN` account through this endpoint.
 
 Never implement password verification in the browser and never return password
 hashes in DTOs.
@@ -254,7 +242,7 @@ email/user.
 GET  /api/admin/ping
 GET  /api/admin/dashboard
 GET  /api/admin/customers
-POST /api/admin/customers/{id}/make-admin
+PUT  /api/admin/customers/{id}/role (SUPER_ADMIN only)
 GET  /api/admin/orders
 PUT  /api/admin/orders/{id}/status
 GET  /api/admin/reviews
@@ -341,6 +329,13 @@ NEXT_PUBLIC_API_URL=https://nexuspc-backend.onrender.com/api
 NEXT_PUBLIC_BKASH_ENABLED=false
 ```
 
+The backend creates the configured super-admin account at startup only when
+that email does not already exist. Store `BOOTSTRAP_SUPERADMIN_PASSWORD` only in the backend host's secret
+environment settings or the backend IDE run configuration/shell environment;
+remove the password variable after the first successful creation. Never commit
+the actual password. The bootstrap never promotes an existing customer
+account automatically.
+
 For local frontend development:
 
 ```env
@@ -362,8 +357,15 @@ DB_DRIVER=com.mysql.cj.jdbc.Driver
 JPA_DDL_AUTO=update
 JWT_SECRET=<random production secret, at least 32 characters>
 JWT_EXPIRATION_MS=86400000
+BOOTSTRAP_SUPERADMIN_EMAIL=superadmin@nexuspc.com
+BOOTSTRAP_SUPERADMIN_PASSWORD=<unique random password, at least 8 characters>
 CORS_ALLOWED_ORIGINS=https://nexuspc.sarawer.me,https://nexus-pc-w3q3.vercel.app
 FRONTEND_URL=https://nexuspc.sarawer.me
+MAIL_HOST=<SMTP server host>
+MAIL_PORT=587
+MAIL_USERNAME=<SMTP sender username>
+MAIL_PASSWORD=<SMTP app password or provider credential>
+MAIL_FROM=<verified sender email address>
 CLOUDINARY_CLOUD_NAME=<secret-managed value>
 CLOUDINARY_API_KEY=<secret-managed value>
 CLOUDINARY_API_SECRET=<secret-managed value>
@@ -385,8 +387,15 @@ DB_DRIVER=com.mysql.cj.jdbc.Driver
 JPA_DDL_AUTO=update
 JWT_SECRET=<local-only random secret>
 JWT_EXPIRATION_MS=86400000
+BOOTSTRAP_SUPERADMIN_EMAIL=superadmin@nexuspc.com
+BOOTSTRAP_SUPERADMIN_PASSWORD=<unique random password, at least 8 characters>
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 FRONTEND_URL=http://localhost:3000
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=<sender email address>
+MAIL_PASSWORD=<mail provider app password>
+MAIL_FROM=<sender email address>
 BKASH_ENABLED=false
 ```
 

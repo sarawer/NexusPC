@@ -25,6 +25,18 @@ export const authService = {
     setAuthToken(result.token);
     return result.user;
   },
+  requestPasswordReset: (email: string) =>
+    apiFetch<{ message: string }>('/auth/forgot-password', {
+      method: 'POST', body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, newPassword: string) =>
+    apiFetch<{ message: string }>('/auth/reset-password', {
+      method: 'POST', body: JSON.stringify({ token, newPassword }),
+    }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiFetch<{ message: string }>('/auth/change-password', {
+      method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }),
+    }),
   me: () => apiFetch<User>('/auth/me'),
   updateProfile: (input: { name: string; phone?: string }) =>
     apiFetch<User>('/auth/me', { method: 'PUT', body: JSON.stringify(input) }),

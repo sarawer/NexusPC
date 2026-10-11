@@ -12,7 +12,7 @@ export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 export type DeliveryMethod = 'inside_dhaka' | 'outside_dhaka';
 
 export interface OrderItem {
-  productId: string;
+  productId: string | number;
   name: string;
   brand: string;
   image: string;
@@ -32,9 +32,9 @@ export interface ShippingAddress {
 }
 
 export interface Order {
-  id: string;
+  id: string | number;
   orderNumber: string;
-  customerId: string;
+  customerId: string | number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;

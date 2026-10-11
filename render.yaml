@@ -19,6 +19,10 @@ services:
         sync: false
       - key: JWT_EXPIRATION_MS
         value: "86400000"
+      - key: BOOTSTRAP_SUPERADMIN_EMAIL
+        value: superadmin@nexuspc.com
+      - key: BOOTSTRAP_SUPERADMIN_PASSWORD
+        sync: false
       - key: JPA_DDL_AUTO
         value: update
       - key: CORS_ALLOWED_ORIGINS
@@ -32,4 +36,14 @@ services:
       - key: BKASH_ENABLED
         value: "false"
       - key: FRONTEND_URL
+        sync: false
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
         sync: false

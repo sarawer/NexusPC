@@ -2,7 +2,6 @@
 // src/components/layout/AnnouncementBar.tsx
 import { X, Truck, Tag } from 'lucide-react';
 import { useState } from 'react';
-import Link from 'next/link';
 
 export default function AnnouncementBar() {
   const [isVisible, setIsVisible] = useState(true);
@@ -19,11 +18,7 @@ export default function AnnouncementBar() {
         <span className="hidden sm:block text-white/30">|</span>
         <span className="flex items-center gap-1.5">
           <Tag size={13} className="opacity-80" />
-          Use code{' '}
-          <Link href="/products" className="font-bold underline decoration-dotted hover:no-underline">
-            WELCOME200
-          </Link>{' '}
-          for ৳200 off your first order
+          Check out current offers and apply your promo code at checkout
         </span>
       </div>
       <button
