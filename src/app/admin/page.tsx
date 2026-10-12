@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ImagePlus, LayoutDashboard, PackagePlus, Search, ShieldCheck, Tags, Ticket, Users, Pencil, Trash2, X, ClipboardList, Mail } from 'lucide-react';
+import { ImagePlus, LayoutDashboard, PackagePlus, Search, ShieldCheck, Tags, Ticket, Users, Pencil, Trash2, X, ClipboardList, Mail, UploadCloud } from 'lucide-react';
 import { adminService, type AdminUser, type Category, type NewsletterSubscriber, type PromoCode } from '@/lib/services/adminService';
 import { authService, type User } from '@/lib/services/authService';
 import { notify } from '@/components/ui/toast';
