@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShieldCheck, Truck, ChevronRight, Trash2, CreditCard } from 'lucide-react';
+import { ShieldCheck, Truck, ChevronRight, Trash2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
@@ -219,7 +219,7 @@ export default function CheckoutPage() {
                 Payment Method
               </h2>
               
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div onClick={() => setPaymentMethod('cod')} className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 text-center transition-colors cursor-pointer ${paymentMethod === 'cod' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200 hover:border-blue-200'}`}>
                   <RadioGroupItem checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} value="cod" id="pay_cod" className="sr-only" />
                   <Label htmlFor="pay_cod" className="cursor-pointer flex flex-col items-center w-full h-full">
@@ -238,19 +238,12 @@ export default function CheckoutPage() {
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (STRIPE_ENABLED) setPaymentMethod('stripe'); else notify.info('Coming soon', 'Card payment will be available soon.'); } }}
                   className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 p-4 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${paymentMethod === 'stripe' ? 'border-indigo-600 bg-indigo-50/50' : 'border-gray-200 hover:border-indigo-200'}`}
                 >
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                    <CreditCard size={24} />
+                  <div className="mb-3 flex h-12 w-32 items-center justify-center overflow-hidden rounded-lg bg-white p-2">
+                    <Image src="/stripe-logo.png" alt="Stripe" width={128} height={48} className="h-full w-full object-contain" />
                   </div>
                   <span className="font-bold text-gray-900">Card Payment (Stripe)</span>
                   <span className="text-xs font-medium text-gray-500">{STRIPE_ENABLED ? 'Charged in USD at checkout' : 'Coming soon'}</span>
                 </div>
-                <button type="button" onClick={() => notify.info('Coming soon', 'Nagad payment will be available soon.')} className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">
-                  <div className="mb-3 flex h-12 w-24 items-center justify-center overflow-hidden rounded-lg bg-orange-50 p-1">
-                    <Image src="/nagad-logo.png" alt="Nagad" width={96} height={48} className="h-full w-full object-contain" />
-                  </div>
-                  <span className="font-bold text-gray-900">Nagad Payment</span>
-                  <span className="text-xs font-medium text-gray-500">Coming soon</span>
-                </button>
               </RadioGroup>
             </div>
 
