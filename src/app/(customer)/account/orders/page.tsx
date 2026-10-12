@@ -70,8 +70,8 @@ export default function OrdersPage() {
             <div key={order.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
                 <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <p className="font-bold text-gray-900">{order.orderNumber}</p>
+                  <div className="mb-1 flex flex-wrap items-center gap-2 sm:gap-3">
+                    <p className="break-all font-bold text-gray-900">{order.orderNumber}</p>
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${getStatusColor(order.status)}`}>
                       {getStatusIcon(order.status)}
                       <span className="capitalize">{order.status}</span>

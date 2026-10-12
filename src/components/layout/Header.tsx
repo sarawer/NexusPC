@@ -44,24 +44,28 @@ export default function Header() {
     <header className="w-full flex flex-col relative z-50">
       {/* Main Header */}
       <div className={cn("bg-white transition-shadow", isScrolled ? "shadow-md sticky top-0" : "")}>
-        <div className="container-site py-4 flex items-center justify-between gap-4 lg:gap-8">
+        <div className="container-site flex items-center justify-between gap-1 py-3 sm:gap-4 sm:py-4 lg:gap-8">
           
           {/* Mobile Menu Toggle */}
-          <button 
-            className="lg:hidden p-2 -ml-2 text-gray-700"
+          <button
+            type="button"
+            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-navigation"
+            className="flex h-10 w-10 shrink-0 items-center justify-center text-gray-700 lg:hidden"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            <Menu size={24} />
+            <Menu size={22} />
           </button>
 
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0 flex items-center gap-2">
-            <div className="bg-blue-600 text-white p-2 rounded-lg">
-              <Cpu size={24} />
+          <Link href="/" className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="rounded-lg bg-blue-600 p-1.5 text-white sm:p-2">
+              <Cpu size={22} />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">Nexus<span className="text-blue-600">PC</span></span>
-              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-widest leading-none mt-1">Build Your Dream</span>
+              <span className="text-lg font-extrabold leading-none tracking-tight text-slate-900 sm:text-xl">Nexus<span className="text-blue-600">PC</span></span>
+              <span className="mt-1 text-[8px] font-medium uppercase leading-none tracking-widest text-slate-500 sm:text-[10px]">Build Your Dream</span>
             </div>
           </Link>
 
@@ -71,25 +75,25 @@ export default function Header() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+          <div className="flex shrink-0 items-center gap-0 sm:gap-2 lg:gap-4">
             <Link href={isSignedIn ? '/account' : '/login'} className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-blue-600 p-2 rounded-md hover:bg-gray-50 transition-colors">
               <User size={20} />
               <span>{isSignedIn ? 'Account' : 'LOGIN / REGISTER'}</span>
             </Link>
             
-            <Link href="/account/wishlist" className="relative p-2 text-gray-700 hover:text-blue-600 rounded-md hover:bg-gray-50 transition-colors">
+            <Link href="/account/wishlist" aria-label="Wishlist" className="relative flex h-10 w-10 items-center justify-center rounded-md text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-600">
               <Heart size={20} />
               {hasMounted && wishlistItems.length > 0 && (
-                <span className="absolute top-0 right-0 bg-orange-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center translate-x-1/4 -translate-y-1/4">
+                <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
                   {wishlistItems.length}
                 </span>
               )}
             </Link>
 
-            <button onClick={openCart} className="relative p-2 text-gray-700 hover:text-blue-600 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2">
+            <button type="button" aria-label={`Cart${hasMounted && cartItemCount > 0 ? `, ${cartItemCount} items` : ''}`} onClick={openCart} className="relative flex h-10 w-10 items-center justify-center gap-2 rounded-md text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-600 lg:h-auto lg:w-auto lg:p-2">
               <ShoppingCart size={20} />
               {hasMounted && cartItemCount > 0 && (
-                <span className="absolute top-0 right-0 lg:static lg:bg-transparent lg:text-inherit bg-blue-600 text-white text-[10px] lg:text-sm font-bold h-4 w-4 lg:h-auto lg:w-auto rounded-full flex items-center justify-center translate-x-1/4 -translate-y-1/4 lg:translate-x-0 lg:translate-y-0">
+                <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white lg:static lg:h-auto lg:w-auto lg:bg-transparent lg:text-sm lg:text-inherit">
                   {cartItemCount}
                 </span>
               )}
@@ -126,7 +130,7 @@ export default function Header() {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div id="mobile-navigation" className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setIsMobileMenuOpen(false)} />
           <div className="fixed top-0 left-0 bottom-0 w-[280px] bg-white shadow-xl flex flex-col">
             <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
@@ -138,9 +142,11 @@ export default function Header() {
               <Link href="/products" className="p-2 font-medium border-b border-gray-100">Shop</Link>
               <Link href="/best-builds" className="p-2 font-medium border-b border-gray-100">Best Builds</Link>
               <Link href="/pc-builder" className="p-2 font-medium border-b border-gray-100">PC Builder</Link>
+              <Link href={isSignedIn ? '/account' : '/login'} className="flex items-center gap-2 border-b border-gray-100 p-2 font-semibold text-blue-600">
+                <User size={18} /> {isSignedIn ? 'Account' : 'LOGIN / REGISTER'}
+              </Link>
               <div className="pt-3 text-xs font-bold uppercase tracking-wide text-slate-400">All Categories</div>
               {categories.map((category) => <Link key={category.slug} href={`/products/${category.slug}`} className="p-2 pl-4 text-sm border-b border-gray-100">{category.name}</Link>)}
-              {!isSignedIn && <Link href="/login" className="p-2 font-semibold text-blue-600">LOGIN / REGISTER</Link>}
             </div>
           </div>
         </div>

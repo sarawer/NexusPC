@@ -4,7 +4,17 @@ import com.nexuspc.catalog.product.*; import com.nexuspc.order.OrderRepository; 
  private final ReviewRepository reviews; private final ProductRepository products; private final UserRepository users; private final OrderRepository orders;
  public ReviewService(ReviewRepository r,ProductRepository p,UserRepository u,OrderRepository o){reviews=r;products=p;users=u;orders=o;}
  @Transactional(readOnly=true) public List<ReviewResponse> list(String slug){return reviews.findByProductSlugAndStatusOrderByCreatedAtDesc(slug,"approved").stream().map(this::out).toList();}
- @Transactional public ReviewResponse create(String email,String slug,ReviewRequest r){if(reviews.existsByProductIdAndUserEmailIgnoreCase(product(slug).getId(),email))throw new IllegalArgumentException("You have already reviewed this product"); User u=users.findByEmailIgnoreCase(email).orElseThrow(); Product p=product(slug); Review x=new Review(p,u,r.rating(),r.comment(),orders.existsPurchased(email,p.getId())); x.moderate("approved"); Review saved=reviews.save(x); refresh(p); return out(saved);}
+ @Transactional public ReviewResponse create(String email,String slug,ReviewRequest r){
+  User u=users.findByEmailIgnoreCase(email).orElseThrow();
+  Product p=product(slug);
+  Review x=reviews.findByProductIdAndUserEmailIgnoreCase(p.getId(),email)
+    .orElseGet(()->new Review(p,u,r.rating(),r.comment(),orders.existsPurchased(email,p.getId())));
+  x.update(r.rating(),r.comment());
+  x.moderate("approved");
+  Review saved=reviews.save(x);
+  refresh(p);
+  return out(saved);
+ }
  @Transactional public ReviewResponse update(String email,Long id,ReviewRequest r){Review x=reviews.findByIdAndUserEmailIgnoreCase(id,email).orElseThrow(()->new NoSuchElementException("Review not found"));x.update(r.rating(),r.comment());x.moderate("pending");refresh(x.getProduct());return out(x);}
  @Transactional public void delete(String email,Long id){Review x=reviews.findByIdAndUserEmailIgnoreCase(id,email).orElseThrow(()->new NoSuchElementException("Review not found"));Product p=x.getProduct();reviews.delete(x);refresh(p);}
  public List<ReviewResponse> adminList(){return reviews.findAllByOrderByCreatedAtDesc().stream().map(this::out).toList();}

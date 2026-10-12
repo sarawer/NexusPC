@@ -92,11 +92,11 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Hover Action Strip (Right side) */}
-      <div className="absolute top-2 right-2 z-10 flex flex-col gap-2 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
+      <div className="absolute right-2 top-2 z-10 flex translate-x-0 flex-col gap-2 opacity-100 transition-all duration-200 sm:translate-x-4 sm:opacity-0 sm:group-hover:translate-x-0 sm:group-hover:opacity-100">
         <button 
           onClick={handleWishlist}
           disabled={wishlistPending}
-          className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 transition-colors"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-500 shadow-md transition-colors hover:bg-gray-50 hover:text-red-500 sm:h-8 sm:w-8"
           aria-label="Add to Wishlist"
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} className={isWishlisted ? "text-red-500" : ""} />
@@ -139,7 +139,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="sm:hidden flex-1"></div> {/* Spacer for mobile */}
 
         <div className="mt-auto">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="price-current">{formatPrice(product.price)}</span>
             {product.originalPrice && (
               <span className="price-original">{formatPrice(product.originalPrice)}</span>

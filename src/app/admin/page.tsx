@@ -177,7 +177,7 @@ export default function AdminPage() {
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">Manage your store</h1>
             <p className="mt-1 text-sm text-gray-500">Manage customers and publish catalog items.</p>
           </div>
-          <p className="text-sm text-gray-500">Signed in as <span className="font-medium text-gray-700">{user.email}</span></p>
+          <p className="text-sm text-gray-500">Signed in as <span className="break-all font-medium text-gray-700">{user.email}</span></p>
         </div>
 
         <div role="tablist" aria-label="Admin sections" className="mb-6 grid grid-cols-1 gap-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -277,7 +277,7 @@ export default function AdminPage() {
               </div>
               <div className="space-y-4">
                 <label className="block space-y-1.5 text-sm font-medium text-gray-700">Promo code<input required minLength={3} maxLength={40} pattern="[A-Za-z0-9_-]+" value={promoDraft.code} onChange={(event) => updatePromoDraft('code', event.target.value)} placeholder="e.g. EID2026" className={field} /></label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block space-y-1.5 text-sm font-medium text-gray-700">Discount type<select value={promoDraft.discountType} onChange={(event) => updatePromoDraft('discountType', event.target.value)} className={field}><option value="FIXED">Fixed amount (৳)</option><option value="PERCENTAGE">Percentage (%)</option></select></label>
                   <label className="block space-y-1.5 text-sm font-medium text-gray-700">Discount value<input required type="number" min="0.01" max={promoDraft.discountType === 'PERCENTAGE' ? 100 : undefined} step="0.01" value={promoDraft.discountValue} onChange={(event) => updatePromoDraft('discountValue', event.target.value)} placeholder={promoDraft.discountType === 'PERCENTAGE' ? '10' : '500'} className={field} /></label>
                 </div>
@@ -322,13 +322,13 @@ export default function AdminPage() {
               return visibleOrders.length ? <div className="space-y-4">{visibleOrders.map((order) => (
                 <article key={order.id} className="rounded-xl border border-gray-200 p-4 sm:p-5">
                   <div className="flex flex-col gap-4 border-b border-gray-100 pb-4 md:flex-row md:items-start md:justify-between">
-                    <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold text-gray-900">{order.orderNumber}</h3><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold capitalize text-blue-700">{order.paymentMethod} · {order.paymentStatus}</span></div><p className="mt-1 text-sm font-medium text-gray-800">{order.customerName}</p><p className="text-sm text-gray-500">{order.customerEmail} · {order.customerPhone || 'No phone'}</p><p className="mt-1 text-xs text-gray-400">Placed {formatDate(order.createdAt)}</p></div>
+                    <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="break-all font-bold text-gray-900">{order.orderNumber}</h3><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold capitalize text-blue-700">{order.paymentMethod} · {order.paymentStatus}</span></div><p className="mt-1 break-words text-sm font-medium text-gray-800">{order.customerName}</p><p className="break-words text-sm text-gray-500">{order.customerEmail} · {order.customerPhone || 'No phone'}</p><p className="mt-1 text-xs text-gray-400">Placed {formatDate(order.createdAt)}</p></div>
                     <label className="block w-full space-y-1 text-xs font-semibold text-gray-500 md:w-48">Order status<select aria-label={`Change status for ${order.orderNumber}`} value={order.status} disabled={updatingOrderId === order.id} onChange={(event) => void changeOrderStatus(order, event.target.value as OrderStatus)} className={`${field} capitalize disabled:opacity-60`}>
                       {(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] as OrderStatus[]).map((status) => <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>)}
                     </select></label>
                   </div>
                   <div className="grid gap-4 py-4 md:grid-cols-[minmax(0,1fr)_240px]">
-                    <div><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Items ({order.items.length})</p><ul className="space-y-1.5">{order.items.map((item, index) => <li key={`${item.productId}-${index}`} className="flex justify-between gap-3 text-sm"><span className="text-gray-700">{item.name} <span className="text-gray-400">× {item.quantity}</span></span><span className="shrink-0 font-medium text-gray-700">{formatPrice(item.subtotal)}</span></li>)}</ul><p className="mt-3 text-xs leading-relaxed text-gray-500">Ship to: {order.shippingAddress.address}, {order.shippingAddress.area}, {order.shippingAddress.district}, {order.shippingAddress.division}</p></div>
+                    <div className="min-w-0"><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Items ({order.items.length})</p><ul className="space-y-1.5">{order.items.map((item, index) => <li key={`${item.productId}-${index}`} className="flex justify-between gap-3 text-sm"><span className="min-w-0 break-words text-gray-700">{item.name} <span className="text-gray-400">× {item.quantity}</span></span><span className="shrink-0 font-medium text-gray-700">{formatPrice(item.subtotal)}</span></li>)}</ul><p className="mt-3 break-words text-xs leading-relaxed text-gray-500">Ship to: {order.shippingAddress.address}, {order.shippingAddress.area}, {order.shippingAddress.district}, {order.shippingAddress.division}</p></div>
                     <dl className="space-y-1.5 border-t border-gray-100 pt-3 text-sm md:border-l md:border-t-0 md:pl-4 md:pt-0"><div className="flex justify-between gap-3"><dt className="text-gray-500">Subtotal</dt><dd>{formatPrice(order.subtotal)}</dd></div>{order.discount > 0 && <div className="flex justify-between gap-3 text-green-700"><dt>Discount{order.couponCode ? ` (${order.couponCode})` : ''}</dt><dd>-{formatPrice(order.discount)}</dd></div>}<div className="flex justify-between gap-3"><dt className="text-gray-500">Delivery</dt><dd>{formatPrice(order.deliveryCharge)}</dd></div><div className="flex justify-between gap-3 border-t border-gray-100 pt-2 font-bold text-gray-900"><dt>Total</dt><dd>{formatPrice(order.total)}</dd></div></dl>
                   </div>
                 </article>

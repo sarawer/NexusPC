@@ -27,7 +27,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
       <div className="container-site">
         <div className="flex flex-col md:flex-row gap-8">
           <div className="w-full md:w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden md:sticky md:top-24">
               <div className="p-6 border-b border-gray-100 flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xl">{initials}</div>
                 <div className="min-w-0"><h3 className="font-bold text-gray-900 truncate">{user?.name || 'Loading...'}</h3><p className="text-xs text-gray-500 truncate">{user?.email || ''}</p></div>

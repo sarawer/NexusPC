@@ -52,7 +52,7 @@ export default function PaletteSwitcher() {
   if (process.env.NODE_ENV === 'production') return null;
 
   return (
-    <div ref={ref} className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2">
+    <div ref={ref} className="fixed bottom-6 right-6 z-[9999] hidden flex-col items-end gap-2 sm:flex">
       {open && (
         <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden w-48">
           <div className="px-3 py-2 text-slate-400 text-[10px] uppercase tracking-widest font-bold border-b border-slate-700">

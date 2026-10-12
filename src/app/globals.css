@@ -99,6 +99,14 @@
     padding-right: 1rem;
   }
 
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   @media (min-width: 640px) {
     .container-site {
       padding-left: 1.5rem;

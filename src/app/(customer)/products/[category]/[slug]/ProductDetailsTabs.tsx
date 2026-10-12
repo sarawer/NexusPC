@@ -36,6 +36,7 @@ export default function ProductDetailsTabs({ slug, productName, specifications, 
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -49,14 +50,15 @@ export default function ProductDetailsTabs({ slug, productName, specifications, 
   async function submitReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
+    setSubmitMessage('');
     try {
       const review = await apiFetch<Review>(`/products/${encodeURIComponent(slug)}/reviews`, {
         method: 'POST', body: JSON.stringify({ rating, comment: comment.trim() }),
       });
-      setReviews((current) => [review, ...current]);
-      setComment('');
+      setReviews((current) => [review, ...current.filter((existing) => existing.id !== review.id)]);
       setHasSubmitted(true);
-      notify.success('Review posted', `Your review for ${productName} is now visible.`);
+      setSubmitMessage('Your latest review is visible to everyone. Submit again anytime to replace it.');
+      notify.success(hasSubmitted ? 'Review updated' : 'Review posted', `Your review for ${productName} is now visible.`);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         notify.info('Please sign in to write a review.');
@@ -73,14 +75,14 @@ export default function ProductDetailsTabs({ slug, productName, specifications, 
   return (
     <div className="container-site mt-16">
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <div className="flex flex-wrap border-b border-gray-200 bg-slate-50" role="tablist" aria-label="Product details">
+        <div className="scrollbar-hide flex flex-nowrap overflow-x-auto border-b border-gray-200 bg-slate-50" role="tablist" aria-label="Product details">
           {([
             ['specifications', 'Specifications'],
             ['description', 'Description'],
             ['reviews', `Reviews (${count})`],
           ] as const).map(([tab, label]) => (
             <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)}
-              className={`border-t-2 px-5 py-4 text-sm font-semibold transition-colors sm:px-8 sm:text-base ${activeTab === tab ? 'border-t-blue-600 bg-white text-blue-700' : 'border-t-transparent text-gray-600 hover:bg-white hover:text-gray-900'}`}>
+              className={`flex-none whitespace-nowrap border-t-2 px-5 py-4 text-sm font-semibold transition-colors sm:px-8 sm:text-base ${activeTab === tab ? 'border-t-blue-600 bg-white text-blue-700' : 'border-t-transparent text-gray-600 hover:bg-white hover:text-gray-900'}`}>
               {label}
             </button>
           ))}
@@ -148,28 +150,25 @@ export default function ProductDetailsTabs({ slug, productName, specifications, 
 
               <section className="h-fit rounded-xl border border-gray-200 bg-slate-50 p-5 sm:p-6" aria-labelledby="write-review-heading">
                 <h2 id="write-review-heading" className="text-lg font-bold text-gray-900">Write a Review</h2>
-                <p className="mt-1 text-sm text-gray-500">Share your experience with other customers.</p>
-                {hasSubmitted ? (
-                  <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">Thanks for sharing your review. It is now visible to everyone.</div>
-                ) : (
-                  <form onSubmit={submitReview} className="mt-5 space-y-4">
-                    <fieldset>
-                      <legend className="mb-2 text-sm font-medium text-gray-700">Your rating</legend>
-                      <div className="flex gap-1">
-                        {Array.from({ length: 5 }, (_, index) => {
-                          const value = index + 1;
-                          return <button key={value} type="button" onClick={() => setRating(value)} aria-label={`${value} star${value > 1 ? 's' : ''}`} aria-pressed={rating === value} className="rounded p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><Star size={24} className={value <= rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'} /></button>;
-                        })}
-                      </div>
-                    </fieldset>
-                    <label className="block text-sm font-medium text-gray-700" htmlFor="review-comment">Your review
-                      <textarea id="review-comment" required maxLength={2000} rows={5} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="What did you think about this product?" className="input-base mt-2 min-h-32 w-full resize-y" />
-                    </label>
-                    <p className="text-right text-xs text-gray-500">{comment.length}/2000</p>
-                    <button type="submit" disabled={submitting || !comment.trim()} className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">{submitting ? 'Posting review…' : 'Submit Review'}</button>
-                    <p className="text-xs text-gray-500">You need to <Link href="/login" className="font-medium text-blue-600 hover:underline">sign in</Link> to post a review. One review per account for each product.</p>
-                  </form>
-                )}
+                <p className="mt-1 text-sm text-gray-500">Share your experience. A new submission replaces your previous review for this product.</p>
+                {submitMessage && <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{submitMessage}</div>}
+                <form onSubmit={submitReview} className={`${submitMessage ? 'mt-4' : 'mt-5'} space-y-4`}>
+                  <fieldset>
+                    <legend className="mb-2 text-sm font-medium text-gray-700">Your rating</legend>
+                    <div className="flex gap-1">
+                      {Array.from({ length: 5 }, (_, index) => {
+                        const value = index + 1;
+                        return <button key={value} type="button" onClick={() => setRating(value)} aria-label={`${value} star${value > 1 ? 's' : ''}`} aria-pressed={rating === value} className="rounded p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><Star size={24} className={value <= rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'} /></button>;
+                      })}
+                    </div>
+                  </fieldset>
+                  <label className="block text-sm font-medium text-gray-700" htmlFor="review-comment">Your review
+                    <textarea id="review-comment" required maxLength={2000} rows={5} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="What did you think about this product?" className="input-base mt-2 min-h-32 w-full resize-y" />
+                  </label>
+                  <p className="text-right text-xs text-gray-500">{comment.length}/2000</p>
+                  <button type="submit" disabled={submitting || !comment.trim()} className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">{submitting ? 'Saving review…' : hasSubmitted ? 'Update Review' : 'Submit Review'}</button>
+                  <p className="text-xs text-gray-500">You need to <Link href="/login" className="font-medium text-blue-600 hover:underline">sign in</Link> to post a review. You can update your review anytime.</p>
+                </form>
               </section>
             </div>
           )}

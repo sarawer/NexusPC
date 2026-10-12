@@ -64,7 +64,7 @@ export default function WishlistPage() {
                       notify.error('Could not remove this item from your wishlist.');
                     }
                   }}
-                  className="absolute top-2 right-2 p-1.5 bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors z-10 opacity-0 group-hover:opacity-100"
+                  className="absolute right-2 top-2 z-10 rounded-md bg-white p-2 text-gray-400 opacity-100 transition-colors hover:bg-red-50 hover:text-red-500 sm:p-1.5 sm:opacity-0 sm:group-hover:opacity-100"
                   aria-label="Remove from wishlist"
                 >
                   <Trash2 size={16} />

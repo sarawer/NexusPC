@@ -250,7 +250,7 @@ export default function CheckoutPage() {
 
           {/* Right: Order Summary */}
           <div className="w-full lg:w-1/3">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:sticky lg:top-24">
               <h2 className="text-lg font-bold text-gray-900 mb-6">Your Order</h2>
               
               <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto pr-2">

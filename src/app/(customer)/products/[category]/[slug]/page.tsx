@@ -95,7 +95,7 @@ export default async function ProductPage({
             </div>
 
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-6 mb-8">
-              <div className="flex items-end gap-3 mb-2">
+              <div className="mb-2 flex flex-wrap items-end gap-x-3 gap-y-1">
                 <span className="text-3xl font-extrabold text-blue-700">{formatPrice(product.price)}</span>
                 {product.originalPrice && (
                   <span className="text-lg text-gray-400 line-through mb-1 font-medium">{formatPrice(product.originalPrice)}</span>
