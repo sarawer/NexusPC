@@ -17,9 +17,9 @@ const toProduct = (item: BackendProduct): Product => ({
   originalPrice: item.originalPrice == null ? undefined : Number(item.originalPrice),
 });
 
-async function list(params = '') {
+async function list(params = '', requestOptions: RequestInit = {}) {
   try {
-    const result = await apiFetch<ProductPage | BackendProduct[]>(`/products${params}`);
+    const result = await apiFetch<ProductPage | BackendProduct[]>(`/products${params}`, requestOptions);
     if (Array.isArray(result)) return result.map(toProduct);
     const query = new URLSearchParams(params.replace(/^\?/, ''));
     const pageCount = query.get('size') === '100' ? Math.min(result.totalPages ?? 1, 100) : 1;
@@ -27,7 +27,7 @@ async function list(params = '') {
     const remaining = await Promise.all(Array.from({ length: pageCount - 1 }, async (_, index) => {
       const pageQuery = new URLSearchParams(query);
       pageQuery.set('page', String(index + 1));
-      const page = await apiFetch<ProductPage | BackendProduct[]>(`/products?${pageQuery}`);
+      const page = await apiFetch<ProductPage | BackendProduct[]>(`/products?${pageQuery}`, requestOptions);
       if (Array.isArray(page)) return page;
       return page.content;
     }));
@@ -60,7 +60,7 @@ export const productService = {
     return (await list(`?category=${encodeURIComponent(product.categorySlug)}&size=${limit + 1}`))
       .filter((item) => item.id !== product.id).slice(0, limit);
   },
-  search: (query: string) => list(`?q=${encodeURIComponent(query)}&size=100`),
+  search: (query: string, signal?: AbortSignal) => list(`?q=${encodeURIComponent(query)}&size=5`, { signal }),
   async filter(filters: ProductFilters, sort: SortOption = 'featured') {
     const params = new URLSearchParams({ size: '100' });
     if (filters.query) params.set('q', filters.query);

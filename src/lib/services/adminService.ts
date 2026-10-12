@@ -1,5 +1,8 @@
 import { apiFetch, API_BASE_URL } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/order';
+import type { NewsletterSubscriber } from '@/lib/services/newsletterService';
+
+export type { NewsletterSubscriber } from '@/lib/services/newsletterService';
 
 export interface Category {
   id: number;
@@ -53,6 +56,7 @@ export const adminService = {
   users: () => apiFetch<AdminUser[]>('/admin/customers'),
   promoCodes: () => apiFetch<PromoCode[]>('/admin/promo-codes'),
   orders: () => apiFetch<Order[]>('/admin/orders'),
+  newsletterSubscribers: () => apiFetch<NewsletterSubscriber[]>('/newsletter/subscribers'),
   updateOrderStatus: (id: number | string, status: OrderStatus) => apiFetch<Order>(`/admin/orders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
   createPromoCode: (input: PromoCodeInput) => apiFetch<PromoCode>('/admin/promo-codes', { method: 'POST', body: JSON.stringify(input) }),
   updatePromoCode: (id: number, input: PromoCodeInput) => apiFetch<PromoCode>(`/admin/promo-codes/${id}`, { method: 'PUT', body: JSON.stringify(input) }),

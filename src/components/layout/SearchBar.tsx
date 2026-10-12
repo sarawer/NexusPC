@@ -14,6 +14,7 @@ export default function SearchBar() {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,14 +22,24 @@ export default function SearchBar() {
   const [results, setResults] = useState<Awaited<ReturnType<typeof productService.search>>>([]);
 
   useEffect(() => {
-    let cancelled = false;
-    if (query.trim().length < 2) {
-      return;
-    }
-    productService.search(query.trim()).then((items) => {
-      if (!cancelled) setResults(items.slice(0, 5));
-    });
-    return () => { cancelled = true; };
+    const term = query.trim();
+    if (term.length < 2) return;
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      productService.search(term, controller.signal)
+        .then((items) => {
+          if (!controller.signal.aborted) setResults(items);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsSearching(false);
+        });
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, [query]);
 
   useEffect(() => {
@@ -56,6 +67,8 @@ export default function SearchBar() {
     router.push(`/products?q=${encodeURIComponent(query.trim())}`);
     setIsOpen(false);
     setQuery('');
+    setResults([]);
+    setIsSearching(false);
   };
 
   const saveRecentSearch = (term: string) => {
@@ -69,6 +82,8 @@ export default function SearchBar() {
     router.push(`/products?q=${encodeURIComponent(term)}`);
     setIsOpen(false);
     setQuery('');
+    setResults([]);
+    setIsSearching(false);
   };
 
   const visibleResults = query.trim().length >= 2 ? results : [];
@@ -85,7 +100,10 @@ export default function SearchBar() {
           type="text"
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value);
+            const value = e.target.value;
+            setQuery(value);
+            setResults([]);
+            setIsSearching(value.trim().length >= 2);
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
@@ -100,7 +118,7 @@ export default function SearchBar() {
         {query && (
           <button
             type="button"
-            onClick={() => { setQuery(''); inputRef.current?.focus(); }}
+            onClick={() => { setQuery(''); setResults([]); setIsSearching(false); inputRef.current?.focus(); }}
             className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             aria-label="Clear search"
           >
@@ -120,7 +138,11 @@ export default function SearchBar() {
       {isOpen && (
         <div id="search-results-popup" className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
           {/* Product results */}
-          {visibleResults.length > 0 && (
+          {isSearching && query.trim().length >= 2 && (
+            <div role="status" className="px-4 py-4 text-sm text-gray-500">Searching products…</div>
+          )}
+
+          {visibleResults.length > 0 && !isSearching && (
             <div>
               <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
                 Products
@@ -160,7 +182,7 @@ export default function SearchBar() {
           )}
 
           {/* Empty results */}
-          {query.length >= 2 && results.length === 0 && (
+          {query.trim().length >= 2 && results.length === 0 && !isSearching && (
             <div className="px-4 py-6 text-center text-sm text-gray-500">
               No products found for &ldquo;{query}&rdquo;
             </div>

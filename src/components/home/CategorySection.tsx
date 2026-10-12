@@ -27,10 +27,11 @@ export default async function CategorySection() {
   }
 
   return (
-    <section className="py-16 bg-white">
+    <section className="bg-white py-12 sm:py-14 lg:py-16">
       <div className="container-site">
-        <div className="section-header">
+        <div className="mb-6 flex flex-col gap-2 sm:mb-8">
           <h2 className="section-title">Shop by Category</h2>
+          <p className="pl-3 text-sm text-slate-500">Browse popular components and accessories for your setup.</p>
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">

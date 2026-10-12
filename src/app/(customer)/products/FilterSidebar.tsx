@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SlidersHorizontal } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
@@ -30,9 +29,6 @@ function FilterContent({
     <div className="space-y-8">
       <div>
         <h3 className="mb-4 border-b border-gray-100 pb-2 font-bold text-gray-900">Price Range</h3>
-        <div className="mb-6 px-2">
-          <Slider min={0} max={2000000} step={5000} defaultValue={[0, 2000000]} value={priceRange} onValueChange={(value) => setPriceRange(Array.isArray(value) ? value as number[] : [value as number])} className="mb-4" />
-        </div>
         <div className="flex items-center gap-4">
           <label className="flex-1 text-xs text-gray-500">Min (৳)<input type="number" min={0} value={priceRange[0]} onChange={(event) => setPriceRange([Number(event.target.value) || 0, priceRange[1]])} className="input-base mt-1 py-1.5 px-2 text-sm" /></label>
           <label className="flex-1 text-xs text-gray-500">Max (৳)<input type="number" min={0} value={priceRange[1]} onChange={(event) => setPriceRange([priceRange[0], Number(event.target.value) || 2000000])} className="input-base mt-1 py-1.5 px-2 text-sm" /></label>

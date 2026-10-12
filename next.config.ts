@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/photo-1587202372775-e229f172b9d7',
+      },
     ],
     dangerouslyAllowSVG: true,
   }

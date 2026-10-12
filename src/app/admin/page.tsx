@@ -2,8 +2,8 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ImagePlus, LayoutDashboard, PackagePlus, Search, ShieldCheck, Tags, Ticket, UploadCloud, Users, Pencil, Trash2, X, ClipboardList } from 'lucide-react';
-import { adminService, type AdminUser, type Category, type PromoCode } from '@/lib/services/adminService';
+import { ImagePlus, LayoutDashboard, PackagePlus, Search, ShieldCheck, Tags, Ticket, UploadCloud, Users, Pencil, Trash2, X, ClipboardList, Mail } from 'lucide-react';
+import { adminService, type AdminUser, type Category, type NewsletterSubscriber, type PromoCode } from '@/lib/services/adminService';
 import { authService, type User } from '@/lib/services/authService';
 import { notify } from '@/components/ui/toast';
 import type { Order, OrderStatus } from '@/types/order';
@@ -22,6 +22,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [newsletterSubscribers, setNewsletterSubscribers] = useState<NewsletterSubscriber[]>([]);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | OrderStatus>('all');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | number | null>(null);
@@ -33,19 +34,20 @@ export default function AdminPage() {
   const [changingRoleUserId, setChangingRoleUserId] = useState<number | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [activeSection, setActiveSection] = useState<'users' | 'category' | 'product' | 'promos' | 'orders'>('users');
+  const [activeSection, setActiveSection] = useState<'users' | 'category' | 'product' | 'promos' | 'orders' | 'newsletter'>('users');
   const [userSearch, setUserSearch] = useState('');
 
   useEffect(() => {
     authService.me().then((current) => {
       if (current.role !== 'ADMIN' && current.role !== 'SUPER_ADMIN') { router.replace('/account'); return; }
       setUser(current);
-      Promise.all([adminService.categories(), adminService.users(), adminService.promoCodes(), adminService.orders()])
-        .then(([loadedCategories, loadedUsers, loadedPromoCodes, loadedOrders]) => {
+      Promise.all([adminService.categories(), adminService.users(), adminService.promoCodes(), adminService.orders(), adminService.newsletterSubscribers()])
+        .then(([loadedCategories, loadedUsers, loadedPromoCodes, loadedOrders, loadedNewsletterSubscribers]) => {
           setCategories(loadedCategories);
           setUsers(loadedUsers);
           setPromoCodes(loadedPromoCodes);
           setOrders(loadedOrders);
+          setNewsletterSubscribers(loadedNewsletterSubscribers);
         })
         .catch(() => notify.error('Could not load admin data.'));
     }).catch(() => router.replace('/login'));
@@ -178,7 +180,7 @@ export default function AdminPage() {
           <p className="text-sm text-gray-500">Signed in as <span className="font-medium text-gray-700">{user.email}</span></p>
         </div>
 
-        <div role="tablist" aria-label="Admin sections" className="mb-6 grid grid-cols-1 gap-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm sm:grid-cols-2 lg:grid-cols-5">
+        <div role="tablist" aria-label="Admin sections" className="mb-6 grid grid-cols-1 gap-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <button type="button" role="tab" aria-selected={activeSection === 'users'} aria-controls="admin-users-panel" onClick={() => setActiveSection('users')} className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors ${activeSection === 'users' ? 'bg-blue-50 text-blue-800 ring-1 ring-blue-100' : 'text-gray-600 hover:bg-gray-50'}`}>
             <span className={`rounded-lg p-2 ${activeSection === 'users' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}><Users size={19} /></span>
             <span><span className="block text-sm font-semibold">Manage users</span><span className="block text-xs text-gray-500">Search accounts and roles</span></span>
@@ -198,6 +200,10 @@ export default function AdminPage() {
           <button type="button" role="tab" aria-selected={activeSection === 'orders'} aria-controls="admin-orders-panel" onClick={() => setActiveSection('orders')} className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors ${activeSection === 'orders' ? 'bg-indigo-50 text-indigo-800 ring-1 ring-indigo-100' : 'text-gray-600 hover:bg-gray-50'}`}>
             <span className={`rounded-lg p-2 ${activeSection === 'orders' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}><ClipboardList size={19} /></span>
             <span><span className="block text-sm font-semibold">Manage orders</span><span className="block text-xs text-gray-500">Review orders and update status</span></span>
+          </button>
+          <button type="button" role="tab" aria-selected={activeSection === 'newsletter'} aria-controls="admin-newsletter-panel" onClick={() => setActiveSection('newsletter')} className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors ${activeSection === 'newsletter' ? 'bg-cyan-50 text-cyan-800 ring-1 ring-cyan-100' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <span className={`rounded-lg p-2 ${activeSection === 'newsletter' ? 'bg-cyan-100 text-cyan-700' : 'bg-gray-100 text-gray-500'}`}><Mail size={19} /></span>
+            <span><span className="block text-sm font-semibold">Newsletter</span><span className="block text-xs text-gray-500">View email subscribers</span></span>
           </button>
         </div>
 
@@ -328,6 +334,25 @@ export default function AdminPage() {
                 </article>
               ))}</div> : <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center text-sm text-gray-500">{orders.length ? 'No orders match those filters.' : 'No customer orders yet.'}</div>;
             })()}
+          </section>
+        )}
+
+        {activeSection === 'newsletter' && (
+          <section id="admin-newsletter-panel" role="tabpanel" aria-label="Newsletter subscribers" className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div><h2 className="font-bold text-gray-900">Newsletter subscribers</h2><p className="text-xs text-gray-500">Email addresses collected from the footer signup form</p></div>
+              <span className="text-sm text-gray-500">{newsletterSubscribers.length} subscriber{newsletterSubscribers.length === 1 ? '' : 's'}</span>
+            </div>
+            {newsletterSubscribers.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px] text-left text-sm">
+                  <thead><tr className="border-b text-xs uppercase tracking-wide text-gray-400"><th className="px-3 py-3">Email address</th><th className="px-3 py-3 text-right">Subscribed</th></tr></thead>
+                  <tbody>{newsletterSubscribers.map((subscriber) => (
+                    <tr key={subscriber.id} className="border-b last:border-0"><td className="px-3 py-4 font-medium text-gray-800">{subscriber.email}</td><td className="px-3 py-4 text-right text-gray-500">{formatDate(subscriber.subscribedAt)}</td></tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            ) : <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center text-sm text-gray-500">No newsletter subscribers yet.</div>}
           </section>
         )}
       </div>

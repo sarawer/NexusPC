@@ -82,6 +82,13 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@media (min-width: 768px) {
+  .hero-banner-photo {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 42%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 42%);
+  }
+}
+
 @layer components {
   /* ─── Utility Classes ────────────────────────────────────────────────────────── */
   .container-site {

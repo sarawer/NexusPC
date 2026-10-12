@@ -237,7 +237,9 @@ export default function CheckoutPage() {
                       <span className="text-xs font-medium text-gray-500">Coming soon</span>
                 </button>
                 <button type="button" onClick={() => notify.info('Coming soon', 'Nagad payment will be available soon.')} className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">
-                  <div className="mb-3 flex h-12 w-16 items-center justify-center rounded-lg bg-orange-50 text-lg font-extrabold text-orange-600">Nagad</div>
+                  <div className="mb-3 flex h-12 w-24 items-center justify-center overflow-hidden rounded-lg bg-orange-50 p-1">
+                    <Image src="/nagad-logo.png" alt="Nagad" width={96} height={48} className="h-full w-full object-contain" />
+                  </div>
                   <span className="font-bold text-gray-900">Nagad Payment</span>
                   <span className="text-xs font-medium text-gray-500">Coming soon</span>
                 </button>

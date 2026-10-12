@@ -1,68 +1,55 @@
-// src/components/home/HeroBanner.tsx
 import Link from 'next/link';
-import { Zap, Shield, Truck } from 'lucide-react';
-import FeaturedBuild from './FeaturedBuild';
-import { Chakra_Petch } from 'next/font/google';
-
-const chakra = Chakra_Petch({ weight: ['700'], subsets: ['latin'] });
+import Image from 'next/image';
+import { ArrowRight, Cpu, ShieldCheck, Truck, Zap } from 'lucide-react';
 
 export default function HeroBanner() {
   return (
-    <div className="w-full bg-[var(--header-bg)] relative overflow-hidden">
-      {/* Background glow effect - single soft radial highlight behind the panel */}
-      <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-blue-500/15 blur-[120px] rounded-full pointer-events-none" />
-      
-      {/* Subtle grid texture */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
-      
-      <div className="container-site relative z-10 py-12 md:py-20 lg:py-24 flex flex-col md:flex-row items-center gap-10">
-        
-        {/* Text Content */}
-        <div className="w-full md:w-1/2 flex flex-col items-start gap-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-blue-300 text-sm font-medium backdrop-blur-sm">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            New Arrivals: RTX 40 Super Series
+    <section className="bg-slate-100 py-6 sm:py-8 lg:py-10" aria-label="NexusPC featured offer">
+      <div className="container-site">
+        <div className="relative isolate min-h-[410px] overflow-hidden rounded-2xl bg-slate-950 text-white shadow-xl sm:min-h-[390px] lg:min-h-[430px]">
+          <div aria-hidden="true" className="hero-banner-photo absolute inset-0 -z-20 md:inset-y-0 md:left-auto md:right-0 md:w-[56%]">
+            <Image
+              src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1400&h=800&q=90"
+              alt="Gaming PC with blue RGB lighting"
+              fill
+              preload
+              quality={75}
+              sizes="(max-width: 767px) 100vw, 56vw"
+              className="object-cover object-center"
+            />
           </div>
-          
-          <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight ${chakra.className}`}>
-            BUILD YOUR ULTIMATE <br />
-            GAMING RIG TODAY
-          </h1>
-          {/* Alternative option: "NATIONWIDE DELIVERY ON ALL CUSTOM PC BUILDS" */}
-          
-          <p className="text-lg text-slate-300 max-w-[560px] leading-relaxed">
-            Configure your dream PC with the latest components. Enjoy official warranty and fast delivery across Bangladesh.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mt-2">
-            <Link href="/products" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-8 rounded-lg transition-colors text-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-[var(--header-bg)]">
-              Shop Now
-            </Link>
-            <Link href="/pc-builder" className="bg-transparent border border-slate-600 hover:border-slate-400 text-white font-semibold py-3.5 px-8 rounded-lg transition-colors text-center focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-[var(--header-bg)]">
-              PC Builder
-            </Link>
-          </div>
-          
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center gap-6 mt-6 pt-6 border-t border-white/10 w-full">
-             <div className="flex items-center gap-2 text-slate-300 text-sm font-medium">
-               <Truck size={18} className="text-orange-500" /> Fast Delivery
-             </div>
-             <div className="flex items-center gap-2 text-slate-300 text-sm font-medium">
-               <Shield size={18} className="text-orange-500" /> Official Warranty
-             </div>
-             <div className="flex items-center gap-2 text-slate-300 text-sm font-medium">
-               <Zap size={18} className="text-orange-500" /> EMI Available
-             </div>
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/10" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/10" />
+
+          <div className="flex min-h-[410px] flex-col justify-center px-6 py-12 sm:min-h-[390px] sm:px-12 lg:min-h-[430px] lg:px-16">
+            <div className="max-w-2xl pr-12 sm:pr-0 md:max-w-[48%] lg:max-w-[50%]">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-[10px] font-bold tracking-[0.19em] text-blue-100 backdrop-blur sm:text-xs">
+                <Cpu size={15} className="text-blue-300" /> MADE FOR YOUR NEXT WIN
+              </div>
+              <h1 className="max-w-xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.4rem]" style={{ color: '#fff' }}>
+                Build your ultimate gaming setup
+              </h1>
+              <p className="mt-5 max-w-lg text-sm leading-6 text-slate-200 sm:text-base sm:leading-7">
+                Explore powerful PC components and find the right combination for the way you play.
+              </p>
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <Link href="/products" className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-950/30 transition-colors hover:bg-blue-500">
+                  Shop components <ArrowRight size={17} />
+                </Link>
+                <Link href="/best-builds" className="rounded-lg border border-white/30 bg-white/5 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/15">
+                  See Best Builds
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Featured Build Panel */}
-        <div className="w-full md:w-1/2 relative mt-8 md:mt-0">
-           <FeaturedBuild />
+        <div className="mt-4 grid grid-cols-1 divide-y divide-slate-100 rounded-xl bg-white px-4 py-1 text-xs font-semibold text-slate-600 shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:text-sm">
+          <span className="flex items-center justify-center gap-2 py-3"><Truck size={17} className="shrink-0 text-blue-600" /> Delivery across Bangladesh</span>
+          <span className="flex items-center justify-center gap-2 py-3"><ShieldCheck size={17} className="shrink-0 text-blue-600" /> Official warranty options</span>
+          <span className="flex items-center justify-center gap-2 py-3"><Zap size={17} className="shrink-0 text-blue-600" /> Build your PC your way</span>
         </div>
-        
       </div>
-    </div>
+    </section>
   );
 }
