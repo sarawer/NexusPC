@@ -9,10 +9,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import com.nexuspc.payment.BkashProperties;
+import com.nexuspc.payment.StripeProperties;
 
 @SpringBootApplication
 @org.springframework.scheduling.annotation.EnableAsync
-@EnableConfigurationProperties(BkashProperties.class)
+@EnableConfigurationProperties({BkashProperties.class, StripeProperties.class})
 public class NexusPcApplication {
     @Bean
     CommandLineRunner seedDefaultCategories(CategoryRepository repository) {

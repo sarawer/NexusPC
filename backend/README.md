@@ -81,7 +81,7 @@ Authenticated users can manage addresses with `GET/POST /api/addresses`,
 The first address is automatically default. Checkout is `POST /api/orders`
 with validated `items` (`productId`, `quantity`), either an owned `addressId`
 or complete `shippingAddress`, `deliveryMethod` (`inside_dhaka` or
-`outside_dhaka`), `paymentMethod` (`cod`, `bkash`, `nagad`, `card`, or
+`outside_dhaka`), `paymentMethod` (`cod`, `bkash`, `stripe`, `nagad`, `card`, or
 `bank_transfer`), and optional `couponCode`/`notes`. Prices, delivery charges,
 totals, and stock are calculated server-side. Creation is transactional,
 decrements stock, and clears the user's cart. `GET /api/orders` and

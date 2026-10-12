@@ -22,7 +22,10 @@ public class BkashService {
         if (!properties.enabled()) throw new IllegalStateException("bKash payment is not enabled");
         String token = token();
         Map<?, ?> response = client.post().uri("/tokenized/checkout/create")
-                .headers(headers -> headers.setBearerAuth(token))
+                .headers(headers -> {
+                    headers.setBearerAuth(token);
+                    headers.set("X-APP-Key", properties.appKey());
+                })
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
                         "mode", "0011",
@@ -49,8 +52,11 @@ public class BkashService {
 
     public boolean execute(String paymentId, BigDecimal expectedAmount, String expectedInvoice) {
         String token = token();
-        Map<?, ?> response = client.post().uri("/tokenized/checkout/execute/{paymentId}", paymentId)
-                .headers(headers -> headers.setBearerAuth(token))
+        Map<?, ?> response = client.post().uri("/tokenized/checkout/execute")
+                .headers(headers -> {
+                    headers.setBearerAuth(token);
+                    headers.set("X-APP-Key", properties.appKey());
+                })
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("paymentID", paymentId))
                 .retrieve().body(Map.class);

@@ -15,7 +15,7 @@ export default async function OrderSuccessPage({
   const paymentPending = status === 'pending';
   const heading = paymentFailed ? 'Payment not completed' : paymentPending ? 'Payment confirmation pending' : 'Order Confirmed!';
   const description = paymentFailed
-    ? 'The bKash checkout did not complete. We have left the order pending until payment status is confirmed; check My Orders before trying again.'
+    ? 'The payment did not complete. We have left the order pending until payment status is confirmed; check My Orders before trying again.'
     : paymentPending
       ? 'We could not confirm the payment yet. Please check My Orders before trying again to avoid a duplicate payment.'
       : 'Thank you for your purchase. We’ve received your order and are currently processing it.';

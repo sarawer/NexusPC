@@ -7,7 +7,7 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled';
 
-export type PaymentMethod = 'cod' | 'bkash' | 'nagad' | 'card' | 'bank_transfer';
+export type PaymentMethod = 'cod' | 'bkash' | 'stripe' | 'nagad' | 'card' | 'bank_transfer';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 export type DeliveryMethod = 'inside_dhaka' | 'outside_dhaka';
 

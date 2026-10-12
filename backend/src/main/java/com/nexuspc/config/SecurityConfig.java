@@ -18,7 +18,7 @@ public class SecurityConfig {
  @Bean SecurityFilterChain filterChain(HttpSecurity http,JwtAuthenticationFilter jwt)throws Exception{
   http.csrf(c->c.disable()).cors(c->{}).headers(h->h.frameOptions(f->f.sameOrigin()))
    .sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-   .authorizeHttpRequests(a->a.requestMatchers("/api/auth/register","/api/auth/login","/api/auth/forgot-password","/api/auth/reset-password","/api/categories/**","/api/products/**","/api/newsletter/subscribe","/api/payments/bkash/callback","/uploads/**","/actuator/health","/error","/h2-console/**").permitAll().anyRequest().authenticated())
+   .authorizeHttpRequests(a->a.requestMatchers("/api/auth/register","/api/auth/login","/api/auth/forgot-password","/api/auth/reset-password","/api/categories/**","/api/products/**","/api/newsletter/subscribe","/api/payments/bkash/callback","/api/payments/stripe/callback","/uploads/**","/actuator/health","/error","/h2-console/**").permitAll().anyRequest().authenticated())
    .exceptionHandling(e->e.authenticationEntryPoint((req,res,ex)->res.sendError(HttpServletResponse.SC_UNAUTHORIZED))
      .accessDeniedHandler((req,res,ex)->res.sendError(HttpServletResponse.SC_FORBIDDEN)))
    .addFilterBefore(jwt,UsernamePasswordAuthenticationFilter.class);

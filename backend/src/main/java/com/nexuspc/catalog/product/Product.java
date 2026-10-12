@@ -55,6 +55,9 @@ public class Product {
     private boolean bestseller;
     @Column(nullable = false)
     private boolean newProduct;
+    // Nullable so existing rows remain visible after the column is introduced.
+    @Column
+    private Boolean active = true;
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
     @Column(nullable = false)
@@ -191,6 +194,14 @@ public class Product {
 
     public boolean isNewProduct() {
         return newProduct;
+    }
+
+    public boolean isActive() {
+        return active == null || active;
+    }
+
+    public void hideFromStore() {
+        this.active = false;
     }
 
     public Instant getCreatedAt() {

@@ -2,14 +2,13 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, FileSpreadsheet, ImagePlus, LayoutDashboard, PackagePlus, Search, ShieldCheck, Tags, Ticket, UploadCloud, Users, Pencil, Trash2, X, ClipboardList, Mail } from 'lucide-react';
-import { adminService, type AdminUser, type Category, type NewsletterSubscriber, type ProductInput, type PromoCode } from '@/lib/services/adminService';
+import { ImagePlus, LayoutDashboard, PackagePlus, Search, ShieldCheck, Tags, Ticket, Users, Pencil, Trash2, X, ClipboardList, Mail } from 'lucide-react';
+import { adminService, type AdminUser, type Category, type NewsletterSubscriber, type PromoCode } from '@/lib/services/adminService';
 import { authService, type User } from '@/lib/services/authService';
 import { notify } from '@/components/ui/toast';
 import type { Order, OrderStatus } from '@/types/order';
 import type { Product } from '@/types/product';
 import { formatDate, formatPrice } from '@/lib/utils';
-import { parseCsv } from '@/lib/utils/parseCsv';
 import { productService } from '@/lib/services/productService';
 
 type PromoDraft = { code: string; discountType: 'FIXED' | 'PERCENTAGE'; discountValue: string; minimumOrderAmount: string; startsAt: string; endsAt: string };
@@ -39,8 +38,6 @@ export default function AdminPage() {
   const [changingRoleUserId, setChangingRoleUserId] = useState<number | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [importingProducts, setImportingProducts] = useState(false);
-  const [productImportReport, setProductImportReport] = useState<{ created: number; errors: string[] } | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productDraft, setProductDraft] = useState<ProductDraft | null>(null);
   const [savingProduct, setSavingProduct] = useState(false);
@@ -224,118 +221,15 @@ export default function AdminPage() {
   }
 
   async function deleteProduct(product: Product) {
-    if (!window.confirm(`Delete “${product.name}” from the catalog? This cannot be undone. If it is still referenced by reviews or customer carts/wishlists, the server will block deletion.`)) return;
+    if (!window.confirm(`Hide “${product.name}” from the shop and featured products? Existing cart and order references will be preserved.`)) return;
     setDeletingProductId(product.id);
     try {
       await adminService.deleteProduct(product.id);
       setProducts((items) => items.filter((item) => item.id !== product.id));
       if (editingProduct?.id === product.id) { setEditingProduct(null); setProductDraft(null); }
-      notify.success('Product deleted.');
+      notify.success('Product hidden from the shop. Existing cart and order references are preserved.');
     } catch (reason) { notify.error(reason instanceof Error ? reason.message : 'Could not delete product.'); }
     finally { setDeletingProductId(null); }
-  }
-
-  async function importProductsCsv(file: File) {
-    setImportingProducts(true);
-    setProductImportReport(null);
-    try {
-      const rows = parseCsv(await file.text());
-      if (rows.length < 2) throw new Error('The CSV needs a header row and at least one product row.');
-      const headers = rows[0].map((header) => header.trim().replace(/^\uFEFF/, '').toLowerCase());
-      const column = (name: string) => headers.indexOf(name.toLowerCase());
-      const requiredColumns = ['categorySlug', 'name', 'sku', 'price', 'stockCount'];
-      const missingColumns = requiredColumns.filter((name) => column(name) < 0);
-      if (missingColumns.length) throw new Error(`Missing CSV columns: ${missingColumns.join(', ')}`);
-      if (rows.length - 1 > 500) throw new Error('Upload at most 500 products at a time.');
-
-      const errors: string[] = [];
-      const products: { line: number; input: ProductInput }[] = [];
-      const read = (row: string[], name: string) => {
-        const index = column(name);
-        return index < 0 ? '' : (row[index] || '').trim();
-      };
-      const flag = (value: string) => ['true', '1', 'yes'].includes(value.toLowerCase());
-      const toSlug = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 180);
-
-      rows.slice(1).forEach((row, index) => {
-        const line = index + 2;
-        const name = read(row, 'name');
-        const sku = read(row, 'sku');
-        const categorySlug = read(row, 'categorySlug').toLowerCase();
-        const category = categories.find((item) => item.slug.toLowerCase() === categorySlug);
-        const priceRaw = read(row, 'price');
-        const stockRaw = read(row, 'stockCount');
-        const price = Number(priceRaw);
-        const stockCount = Number(stockRaw);
-        const slug = toSlug(read(row, 'slug') || name);
-        const problems: string[] = [];
-
-        if (!name) problems.push('name is empty');
-        if (!sku) problems.push('sku is empty');
-        if (!category) problems.push(`categorySlug "${categorySlug}" was not found`);
-        if (!priceRaw || !Number.isFinite(price) || price < 0) problems.push('price must be a number at least 0');
-        if (!/^\d+$/.test(stockRaw) || !Number.isSafeInteger(stockCount)) problems.push('stockCount must be a whole number at least 0');
-        if (!slug) problems.push('could not create a valid slug from the product name');
-
-        const originalPriceRaw = read(row, 'originalPrice');
-        const originalPrice = originalPriceRaw ? Number(originalPriceRaw) : undefined;
-        if (originalPriceRaw && (!Number.isFinite(originalPrice) || (originalPrice ?? -1) < 0)) problems.push('originalPrice must be a number at least 0');
-        if (problems.length) {
-          errors.push(`Row ${line}: ${problems.join('; ')}`);
-          return;
-        }
-
-        const imageUrl = read(row, 'imageUrl');
-        products.push({
-          line,
-          input: {
-            slug,
-            name,
-            brand: read(row, 'brand'),
-            sku,
-            categoryId: category!.id,
-            description: read(row, 'description'),
-            shortDescription: read(row, 'shortDescription'),
-            price,
-            originalPrice,
-            stockCount,
-            rating: 0,
-            reviewCount: 0,
-            warranty: read(row, 'warranty'),
-            images: imageUrl ? [{ url: imageUrl, alt: read(row, 'imageAlt') || name }] : [],
-            specifications: {},
-            tags: [],
-            featured: flag(read(row, 'featured')),
-            bestseller: flag(read(row, 'bestseller')),
-            isNew: flag(read(row, 'isNew')),
-          },
-        });
-      });
-
-      let created = 0;
-      for (let start = 0; start < products.length; start += 4) {
-        await Promise.all(products.slice(start, start + 4).map(async ({ line, input }) => {
-          try {
-            await adminService.createProduct(input);
-            created += 1;
-          } catch (reason) {
-            errors.push(`Row ${line}: ${reason instanceof Error ? reason.message : 'could not create product'}`);
-          }
-        }));
-      }
-
-      errors.sort((first, second) => Number(first.match(/^Row (\d+)/)?.[1]) - Number(second.match(/^Row (\d+)/)?.[1]));
-      setProductImportReport({ created, errors });
-      if (created) setProducts(await productService.getAll());
-      if (created) notify.success(`${created} product${created === 1 ? '' : 's'} imported successfully.`);
-      if (errors.length) notify.error(`${errors.length} CSV row${errors.length === 1 ? '' : 's'} need attention.`);
-    } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'Could not read this CSV file.';
-      setProductImportReport({ created: 0, errors: [message] });
-      notify.error(message);
-    } finally {
-      setImportingProducts(false);
-    }
   }
 
   const normalizedUserSearch = userSearch.trim().toLowerCase();
@@ -436,27 +330,6 @@ export default function AdminPage() {
 
         {activeSection === 'product' && (
           <section id="admin-product-panel" role="tabpanel" aria-label="Add product">
-            <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/70 p-5 sm:p-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-white p-2 text-blue-700 shadow-sm"><FileSpreadsheet size={20} /></div>
-                  <div><h2 className="font-bold text-gray-900">Add products in bulk</h2><p className="mt-1 max-w-2xl text-sm text-gray-600">Fill the CSV with product details, then upload it. Each row is checked and any failed rows are listed.</p></div>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <a href="/product-bulk-bd-market.csv" download className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-100"><Download size={16} />Download 120-product sheet</a>
-                  <a href="/product-bulk-template.csv" download className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-100"><Download size={16} />Download template</a>
-                  <label className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 ${importingProducts || !categories.length ? 'cursor-not-allowed opacity-60' : ''}`}>
-                    <UploadCloud size={16} />{importingProducts ? 'Importing…' : 'Choose CSV'}
-                    <input type="file" accept=".csv,text/csv" className="sr-only" disabled={importingProducts || !categories.length} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (file) void importProductsCsv(file); }} />
-                  </label>
-                </div>
-              </div>
-              <p className="mt-3 break-words text-xs leading-relaxed text-gray-500">Category slugs: {categories.map((category) => category.slug).join(', ')}. Add image links in the imageUrl column before importing. The prepared sheet has suggested Bangladesh market prices and sample stock counts; confirm these before selling. Required columns: categorySlug, name, sku, price, stockCount. Up to 500 rows per upload.</p>
-              {productImportReport && <div className="mt-4 rounded-lg border border-white bg-white p-4 text-sm" role="status">
-                <p className="font-semibold text-gray-800">Imported {productImportReport.created} product{productImportReport.created === 1 ? '' : 's'}{productImportReport.errors.length ? ` · ${productImportReport.errors.length} row${productImportReport.errors.length === 1 ? '' : 's'} need attention` : ''}</p>
-                {productImportReport.errors.length > 0 && <ul className="mt-2 max-h-48 space-y-1 overflow-auto text-xs text-red-700">{productImportReport.errors.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>}
-              </div>}
-            </div>
             <form onSubmit={createProduct} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <div className="mb-6 flex items-center gap-3"><div className="rounded-lg bg-blue-100 p-2 text-blue-600"><PackagePlus size={20} /></div><div><h2 className="font-bold text-gray-900">Add product</h2><p className="text-xs text-gray-500">Publish a new item to your store</p></div></div>
               <div className="grid gap-4 sm:grid-cols-2">

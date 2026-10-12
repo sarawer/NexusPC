@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShieldCheck, Truck, ChevronRight, Trash2 } from 'lucide-react';
+import { ShieldCheck, Truck, ChevronRight, Trash2, CreditCard } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { couponService, orderService } from '@/lib/services/shopService';
 import { notify } from '@/components/ui/toast';
 import { useIsAuthenticated, useIsClient } from '@/lib/authState';
+
+const STRIPE_ENABLED = process.env.NEXT_PUBLIC_STRIPE_ENABLED === 'true';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -90,8 +92,8 @@ export default function CheckoutPage() {
         paymentMethod,
         couponCode: couponCode || undefined,
       });
-      if (order.paymentMethod === 'bkash') {
-        if (!order.paymentUrl) throw new Error('Could not start bKash payment. Please try again.');
+      if (order.paymentMethod === 'stripe') {
+        if (!order.paymentUrl) throw new Error('Could not start card payment. Please try again.');
         window.location.assign(order.paymentUrl);
         return;
       }
@@ -229,13 +231,19 @@ export default function CheckoutPage() {
                   </Label>
                 </div>
 
-                <button type="button" onClick={() => notify.info('Coming soon', 'bKash payment will be available soon.')} className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-pink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500">
-                      <div className="w-16 h-12 bg-white rounded-lg flex items-center justify-center mb-3 overflow-hidden">
-                        <Image src="/bkash-logo.png" alt="bKash" width={64} height={48} className="h-full w-full object-contain" />
-                      </div>
-                      <span className="font-bold text-gray-900">bKash Payment</span>
-                      <span className="text-xs font-medium text-gray-500">Coming soon</span>
-                </button>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => (STRIPE_ENABLED ? setPaymentMethod('stripe') : notify.info('Coming soon', 'Card payment will be available soon.'))}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (STRIPE_ENABLED) setPaymentMethod('stripe'); else notify.info('Coming soon', 'Card payment will be available soon.'); } }}
+                  className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 p-4 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${paymentMethod === 'stripe' ? 'border-indigo-600 bg-indigo-50/50' : 'border-gray-200 hover:border-indigo-200'}`}
+                >
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                    <CreditCard size={24} />
+                  </div>
+                  <span className="font-bold text-gray-900">Card Payment (Stripe)</span>
+                  <span className="text-xs font-medium text-gray-500">{STRIPE_ENABLED ? 'Charged in USD at checkout' : 'Coming soon'}</span>
+                </div>
                 <button type="button" onClick={() => notify.info('Coming soon', 'Nagad payment will be available soon.')} className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">
                   <div className="mb-3 flex h-12 w-24 items-center justify-center overflow-hidden rounded-lg bg-orange-50 p-1">
                     <Image src="/nagad-logo.png" alt="Nagad" width={96} height={48} className="h-full w-full object-contain" />
