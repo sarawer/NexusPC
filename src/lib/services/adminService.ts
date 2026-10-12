@@ -70,6 +70,10 @@ export const adminService = {
     apiFetch<Category>('/admin/categories', { method: 'POST', body: JSON.stringify(input) }),
   createProduct: (input: ProductInput) =>
     apiFetch('/admin/products', { method: 'POST', body: JSON.stringify(input) }),
+  updateProduct: (id: string | number, input: ProductInput) =>
+    apiFetch(`/admin/products/${id}`, { method: 'PUT', body: JSON.stringify(input) }),
+  deleteProduct: (id: string | number) =>
+    apiFetch<void>(`/admin/products/${id}`, { method: 'DELETE' }),
   uploadImage: async (file: File) => {
     const form = new FormData();
     form.append('file', file);

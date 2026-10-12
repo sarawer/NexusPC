@@ -2,14 +2,18 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ImagePlus, LayoutDashboard, PackagePlus, Search, ShieldCheck, Tags, Ticket, UploadCloud, Users, Pencil, Trash2, X, ClipboardList, Mail } from 'lucide-react';
-import { adminService, type AdminUser, type Category, type NewsletterSubscriber, type PromoCode } from '@/lib/services/adminService';
+import { Download, FileSpreadsheet, ImagePlus, LayoutDashboard, PackagePlus, Search, ShieldCheck, Tags, Ticket, UploadCloud, Users, Pencil, Trash2, X, ClipboardList, Mail } from 'lucide-react';
+import { adminService, type AdminUser, type Category, type NewsletterSubscriber, type ProductInput, type PromoCode } from '@/lib/services/adminService';
 import { authService, type User } from '@/lib/services/authService';
 import { notify } from '@/components/ui/toast';
 import type { Order, OrderStatus } from '@/types/order';
+import type { Product } from '@/types/product';
 import { formatDate, formatPrice } from '@/lib/utils';
+import { parseCsv } from '@/lib/utils/parseCsv';
+import { productService } from '@/lib/services/productService';
 
 type PromoDraft = { code: string; discountType: 'FIXED' | 'PERCENTAGE'; discountValue: string; minimumOrderAmount: string; startsAt: string; endsAt: string };
+type ProductDraft = { slug: string; name: string; brand: string; sku: string; categoryId: string; price: string; originalPrice: string; stockCount: string; warranty: string; shortDescription: string; description: string; imageUrl: string; featured: boolean; bestseller: boolean; isNew: boolean };
 const localDateTime = (date: Date) => { const offset = date.getTimezoneOffset() * 60000; return new Date(date.getTime() - offset).toISOString().slice(0, 16); };
 const newPromoDraft = (): PromoDraft => { const now = new Date(); const end = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); return { code: '', discountType: 'FIXED', discountValue: '', minimumOrderAmount: '0', startsAt: localDateTime(now), endsAt: localDateTime(end) }; };
 
@@ -22,6 +26,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [newsletterSubscribers, setNewsletterSubscribers] = useState<NewsletterSubscriber[]>([]);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | OrderStatus>('all');
@@ -34,6 +39,14 @@ export default function AdminPage() {
   const [changingRoleUserId, setChangingRoleUserId] = useState<number | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [importingProducts, setImportingProducts] = useState(false);
+  const [productImportReport, setProductImportReport] = useState<{ created: number; errors: string[] } | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productDraft, setProductDraft] = useState<ProductDraft | null>(null);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [productSearch, setProductSearch] = useState('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
   const [activeSection, setActiveSection] = useState<'users' | 'category' | 'product' | 'promos' | 'orders' | 'newsletter'>('users');
   const [userSearch, setUserSearch] = useState('');
 
@@ -41,13 +54,14 @@ export default function AdminPage() {
     authService.me().then((current) => {
       if (current.role !== 'ADMIN' && current.role !== 'SUPER_ADMIN') { router.replace('/account'); return; }
       setUser(current);
-      Promise.all([adminService.categories(), adminService.users(), adminService.promoCodes(), adminService.orders(), adminService.newsletterSubscribers()])
-        .then(([loadedCategories, loadedUsers, loadedPromoCodes, loadedOrders, loadedNewsletterSubscribers]) => {
+      Promise.all([adminService.categories(), adminService.users(), adminService.promoCodes(), adminService.orders(), adminService.newsletterSubscribers(), productService.getAll()])
+        .then(([loadedCategories, loadedUsers, loadedPromoCodes, loadedOrders, loadedNewsletterSubscribers, loadedProducts]) => {
           setCategories(loadedCategories);
           setUsers(loadedUsers);
           setPromoCodes(loadedPromoCodes);
           setOrders(loadedOrders);
           setNewsletterSubscribers(loadedNewsletterSubscribers);
+          setProducts(loadedProducts);
         })
         .catch(() => notify.error('Could not load admin data.'));
     }).catch(() => router.replace('/login'));
@@ -156,13 +170,182 @@ export default function AdminPage() {
         images: imageUrl ? [{ url: imageUrl, alt: String(data.get('name')) }] : [], specifications: {}, tags: [],
         featured: data.get('featured') === 'on', bestseller: data.get('bestseller') === 'on', isNew: data.get('isNew') === 'on',
       });
+      setProducts(await productService.getAll());
       form.reset(); setImageUrl(''); notify.success('Product created successfully.');
     } catch (reason) { notify.error(reason instanceof Error ? reason.message : 'Could not create product.'); }
+  }
+
+  function editProduct(product: Product) {
+    const category = categories.find((item) => item.slug === product.categorySlug);
+    setEditingProduct(product);
+    setProductDraft({
+      slug: product.slug, name: product.name, brand: product.brand ?? '', sku: product.sku,
+      categoryId: category ? String(category.id) : '', price: String(product.price),
+      originalPrice: product.originalPrice == null ? '' : String(product.originalPrice),
+      stockCount: String(product.stockCount), warranty: product.warranty ?? '',
+      shortDescription: product.shortDescription ?? '', description: product.description ?? '',
+      imageUrl: product.images[0]?.url ?? '', featured: product.isFeatured,
+      bestseller: product.isBestseller, isNew: product.isNew,
+    });
+  }
+
+  function updateProductDraft<K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) {
+    setProductDraft((draft) => draft ? { ...draft, [key]: value } : draft);
+  }
+
+  async function saveProduct(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingProduct || !productDraft) return;
+    setSavingProduct(true);
+    try {
+      const nextImageUrl = productDraft.imageUrl.trim();
+      const oldImageUrl = editingProduct.images[0]?.url ?? '';
+      const images = nextImageUrl === oldImageUrl
+        ? editingProduct.images.map(({ url, alt }) => ({ url, alt }))
+        : nextImageUrl
+          ? [{ url: nextImageUrl, alt: productDraft.name }, ...editingProduct.images.slice(1).map(({ url, alt }) => ({ url, alt }))]
+          : editingProduct.images.slice(1).map(({ url, alt }) => ({ url, alt }));
+      await adminService.updateProduct(editingProduct.id, {
+        slug: productDraft.slug.trim(), name: productDraft.name.trim(), brand: productDraft.brand.trim(), sku: productDraft.sku.trim(),
+        categoryId: Number(productDraft.categoryId), description: productDraft.description,
+        shortDescription: productDraft.shortDescription, price: Number(productDraft.price),
+        originalPrice: productDraft.originalPrice.trim() ? Number(productDraft.originalPrice) : undefined,
+        stockCount: Number(productDraft.stockCount), rating: editingProduct.rating,
+        reviewCount: editingProduct.reviewCount, warranty: productDraft.warranty,
+        images, specifications: Object.fromEntries(editingProduct.specifications.map(({ label, value }) => [label, value])),
+        tags: editingProduct.tags, featured: productDraft.featured,
+        bestseller: productDraft.bestseller, isNew: productDraft.isNew,
+      });
+      setProducts(await productService.getAll());
+      setEditingProduct(null); setProductDraft(null);
+      notify.success('Product updated successfully.');
+    } catch (reason) { notify.error(reason instanceof Error ? reason.message : 'Could not update product.'); }
+    finally { setSavingProduct(false); }
+  }
+
+  async function deleteProduct(product: Product) {
+    if (!window.confirm(`Delete “${product.name}” from the catalog? This cannot be undone. If it is still referenced by reviews or customer carts/wishlists, the server will block deletion.`)) return;
+    setDeletingProductId(product.id);
+    try {
+      await adminService.deleteProduct(product.id);
+      setProducts((items) => items.filter((item) => item.id !== product.id));
+      if (editingProduct?.id === product.id) { setEditingProduct(null); setProductDraft(null); }
+      notify.success('Product deleted.');
+    } catch (reason) { notify.error(reason instanceof Error ? reason.message : 'Could not delete product.'); }
+    finally { setDeletingProductId(null); }
+  }
+
+  async function importProductsCsv(file: File) {
+    setImportingProducts(true);
+    setProductImportReport(null);
+    try {
+      const rows = parseCsv(await file.text());
+      if (rows.length < 2) throw new Error('The CSV needs a header row and at least one product row.');
+      const headers = rows[0].map((header) => header.trim().replace(/^\uFEFF/, '').toLowerCase());
+      const column = (name: string) => headers.indexOf(name.toLowerCase());
+      const requiredColumns = ['categorySlug', 'name', 'sku', 'price', 'stockCount'];
+      const missingColumns = requiredColumns.filter((name) => column(name) < 0);
+      if (missingColumns.length) throw new Error(`Missing CSV columns: ${missingColumns.join(', ')}`);
+      if (rows.length - 1 > 500) throw new Error('Upload at most 500 products at a time.');
+
+      const errors: string[] = [];
+      const products: { line: number; input: ProductInput }[] = [];
+      const read = (row: string[], name: string) => {
+        const index = column(name);
+        return index < 0 ? '' : (row[index] || '').trim();
+      };
+      const flag = (value: string) => ['true', '1', 'yes'].includes(value.toLowerCase());
+      const toSlug = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 180);
+
+      rows.slice(1).forEach((row, index) => {
+        const line = index + 2;
+        const name = read(row, 'name');
+        const sku = read(row, 'sku');
+        const categorySlug = read(row, 'categorySlug').toLowerCase();
+        const category = categories.find((item) => item.slug.toLowerCase() === categorySlug);
+        const priceRaw = read(row, 'price');
+        const stockRaw = read(row, 'stockCount');
+        const price = Number(priceRaw);
+        const stockCount = Number(stockRaw);
+        const slug = toSlug(read(row, 'slug') || name);
+        const problems: string[] = [];
+
+        if (!name) problems.push('name is empty');
+        if (!sku) problems.push('sku is empty');
+        if (!category) problems.push(`categorySlug "${categorySlug}" was not found`);
+        if (!priceRaw || !Number.isFinite(price) || price < 0) problems.push('price must be a number at least 0');
+        if (!/^\d+$/.test(stockRaw) || !Number.isSafeInteger(stockCount)) problems.push('stockCount must be a whole number at least 0');
+        if (!slug) problems.push('could not create a valid slug from the product name');
+
+        const originalPriceRaw = read(row, 'originalPrice');
+        const originalPrice = originalPriceRaw ? Number(originalPriceRaw) : undefined;
+        if (originalPriceRaw && (!Number.isFinite(originalPrice) || (originalPrice ?? -1) < 0)) problems.push('originalPrice must be a number at least 0');
+        if (problems.length) {
+          errors.push(`Row ${line}: ${problems.join('; ')}`);
+          return;
+        }
+
+        const imageUrl = read(row, 'imageUrl');
+        products.push({
+          line,
+          input: {
+            slug,
+            name,
+            brand: read(row, 'brand'),
+            sku,
+            categoryId: category!.id,
+            description: read(row, 'description'),
+            shortDescription: read(row, 'shortDescription'),
+            price,
+            originalPrice,
+            stockCount,
+            rating: 0,
+            reviewCount: 0,
+            warranty: read(row, 'warranty'),
+            images: imageUrl ? [{ url: imageUrl, alt: read(row, 'imageAlt') || name }] : [],
+            specifications: {},
+            tags: [],
+            featured: flag(read(row, 'featured')),
+            bestseller: flag(read(row, 'bestseller')),
+            isNew: flag(read(row, 'isNew')),
+          },
+        });
+      });
+
+      let created = 0;
+      for (let start = 0; start < products.length; start += 4) {
+        await Promise.all(products.slice(start, start + 4).map(async ({ line, input }) => {
+          try {
+            await adminService.createProduct(input);
+            created += 1;
+          } catch (reason) {
+            errors.push(`Row ${line}: ${reason instanceof Error ? reason.message : 'could not create product'}`);
+          }
+        }));
+      }
+
+      errors.sort((first, second) => Number(first.match(/^Row (\d+)/)?.[1]) - Number(second.match(/^Row (\d+)/)?.[1]));
+      setProductImportReport({ created, errors });
+      if (created) setProducts(await productService.getAll());
+      if (created) notify.success(`${created} product${created === 1 ? '' : 's'} imported successfully.`);
+      if (errors.length) notify.error(`${errors.length} CSV row${errors.length === 1 ? '' : 's'} need attention.`);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : 'Could not read this CSV file.';
+      setProductImportReport({ created: 0, errors: [message] });
+      notify.error(message);
+    } finally {
+      setImportingProducts(false);
+    }
   }
 
   const normalizedUserSearch = userSearch.trim().toLowerCase();
   const filteredUsers = users.filter((account) =>
     [account.name, account.email, account.phone || ''].some((value) => value.toLowerCase().includes(normalizedUserSearch)),
+  );
+  const normalizedProductSearch = productSearch.trim().toLowerCase();
+  const filteredProducts = products.filter((product) =>
+    (productCategoryFilter === 'all' || product.categorySlug === productCategoryFilter)
+    && [product.name, product.brand, product.sku].some((value) => (value || '').toLowerCase().includes(normalizedProductSearch)),
   );
 
   if (!user) return <div className="container-site py-16 text-gray-600">Loading admin panel...</div>;
@@ -253,6 +436,27 @@ export default function AdminPage() {
 
         {activeSection === 'product' && (
           <section id="admin-product-panel" role="tabpanel" aria-label="Add product">
+            <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/70 p-5 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-white p-2 text-blue-700 shadow-sm"><FileSpreadsheet size={20} /></div>
+                  <div><h2 className="font-bold text-gray-900">Add products in bulk</h2><p className="mt-1 max-w-2xl text-sm text-gray-600">Fill the CSV with product details, then upload it. Each row is checked and any failed rows are listed.</p></div>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <a href="/product-bulk-bd-market.csv" download className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-100"><Download size={16} />Download 120-product sheet</a>
+                  <a href="/product-bulk-template.csv" download className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-100"><Download size={16} />Download template</a>
+                  <label className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 ${importingProducts || !categories.length ? 'cursor-not-allowed opacity-60' : ''}`}>
+                    <UploadCloud size={16} />{importingProducts ? 'Importing…' : 'Choose CSV'}
+                    <input type="file" accept=".csv,text/csv" className="sr-only" disabled={importingProducts || !categories.length} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (file) void importProductsCsv(file); }} />
+                  </label>
+                </div>
+              </div>
+              <p className="mt-3 break-words text-xs leading-relaxed text-gray-500">Category slugs: {categories.map((category) => category.slug).join(', ')}. Add image links in the imageUrl column before importing. The prepared sheet has suggested Bangladesh market prices and sample stock counts; confirm these before selling. Required columns: categorySlug, name, sku, price, stockCount. Up to 500 rows per upload.</p>
+              {productImportReport && <div className="mt-4 rounded-lg border border-white bg-white p-4 text-sm" role="status">
+                <p className="font-semibold text-gray-800">Imported {productImportReport.created} product{productImportReport.created === 1 ? '' : 's'}{productImportReport.errors.length ? ` · ${productImportReport.errors.length} row${productImportReport.errors.length === 1 ? '' : 's'} need attention` : ''}</p>
+                {productImportReport.errors.length > 0 && <ul className="mt-2 max-h-48 space-y-1 overflow-auto text-xs text-red-700">{productImportReport.errors.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>}
+              </div>}
+            </div>
             <form onSubmit={createProduct} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <div className="mb-6 flex items-center gap-3"><div className="rounded-lg bg-blue-100 p-2 text-blue-600"><PackagePlus size={20} /></div><div><h2 className="font-bold text-gray-900">Add product</h2><p className="text-xs text-gray-500">Publish a new item to your store</p></div></div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -265,6 +469,43 @@ export default function AdminPage() {
               <div className="mt-5 flex flex-wrap gap-5 text-sm text-gray-600"><label><input name="featured" type="checkbox" className="mr-2" />Featured</label><label><input name="bestseller" type="checkbox" className="mr-2" />Bestseller</label><label><input name="isNew" type="checkbox" className="mr-2" />New product</label></div>
               <button className="mt-6 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700">Create product</button>
             </form>
+
+            <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div><h2 className="font-bold text-gray-900">Manage existing products</h2><p className="text-xs text-gray-500">{products.length} product{products.length === 1 ? '' : 's'} in your catalog</p></div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <label className="relative block"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input type="search" value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Search name, brand, SKU" className={`${field} pl-9 sm:w-64`} /><span className="sr-only">Search products by name, brand, or SKU</span></label>
+                  <select aria-label="Filter products by category" value={productCategoryFilter} onChange={(event) => setProductCategoryFilter(event.target.value)} className={`${field} sm:w-48`}><option value="all">All categories</option>{categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}</select>
+                </div>
+              </div>
+              {filteredProducts.length ? <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-left text-sm">
+                  <thead><tr className="border-b text-xs uppercase tracking-wide text-gray-400"><th className="px-3 py-3">Product</th><th className="px-3 py-3">Category</th><th className="px-3 py-3 text-right">Price</th><th className="px-3 py-3 text-right">Stock</th><th className="px-3 py-3">Visibility</th><th className="px-3 py-3 text-right">Actions</th></tr></thead>
+                  <tbody>{filteredProducts.map((product) => <tr key={product.id} className="border-b last:border-0">
+                    <td className="px-3 py-3"><p className="max-w-[260px] truncate font-semibold text-gray-900">{product.name}</p><p className="text-xs text-gray-500">{product.brand || '—'} · {product.sku}</p></td>
+                    <td className="px-3 py-3 text-gray-600">{product.categoryName}</td>
+                    <td className="px-3 py-3 text-right font-semibold text-gray-900">{formatPrice(product.price)}</td>
+                    <td className="px-3 py-3 text-right text-gray-600">{product.stockCount}</td>
+                    <td className="px-3 py-3"><div className="flex flex-wrap gap-1">{product.isFeatured && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">Featured</span>}{product.isBestseller && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Bestseller</span>}{product.isNew && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">New</span>}{!product.isFeatured && !product.isBestseller && !product.isNew && <span className="text-xs text-gray-400">Standard</span>}</div></td>
+                    <td className="px-3 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => editProduct(product)} className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-blue-50 hover:text-blue-700" aria-label={`Edit ${product.name}`}><Pencil size={16} /></button><button type="button" onClick={() => void deleteProduct(product)} disabled={deletingProductId === product.id} className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 disabled:cursor-wait disabled:opacity-50" aria-label={`Delete ${product.name}`}><Trash2 size={16} /></button></div></td>
+                  </tr>)}</tbody>
+                </table>
+              </div> : <div className="rounded-xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-500">{products.length ? 'No products match your search or category.' : 'No products found in the catalog.'}</div>}
+            </div>
+
+            {editingProduct && productDraft && <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-5" role="presentation">
+              <section role="dialog" aria-modal="true" aria-labelledby="edit-product-title" className="max-h-[94vh] w-full max-w-3xl overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6">
+                <div className="mb-5 flex items-center justify-between gap-3"><div><h2 id="edit-product-title" className="text-lg font-bold text-gray-900">Edit product</h2><p className="text-sm text-gray-500">Update this product’s listing details.</p></div><button type="button" onClick={() => { setEditingProduct(null); setProductDraft(null); }} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Close product editor"><X size={20} /></button></div>
+                <form onSubmit={saveProduct} className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1 text-sm font-medium text-gray-700">Product name<input required maxLength={250} value={productDraft.name} onChange={(event) => updateProductDraft('name', event.target.value)} className={field} /></label><label className="space-y-1 text-sm font-medium text-gray-700">URL slug<input required pattern="[a-z0-9-]+" value={productDraft.slug} onChange={(event) => updateProductDraft('slug', event.target.value)} className={field} /></label><label className="space-y-1 text-sm font-medium text-gray-700">Brand<input maxLength={120} value={productDraft.brand} onChange={(event) => updateProductDraft('brand', event.target.value)} className={field} /></label><label className="space-y-1 text-sm font-medium text-gray-700">SKU<input required value={productDraft.sku} onChange={(event) => updateProductDraft('sku', event.target.value)} className={field} /></label>
+                    <label className="space-y-1 text-sm font-medium text-gray-700">Category<select required value={productDraft.categoryId} onChange={(event) => updateProductDraft('categoryId', event.target.value)} className={field}><option value="">Select category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><label className="space-y-1 text-sm font-medium text-gray-700">Price (৳)<input required type="number" min="0" step="0.01" value={productDraft.price} onChange={(event) => updateProductDraft('price', event.target.value)} className={field} /></label><label className="space-y-1 text-sm font-medium text-gray-700">Original price (৳)<input type="number" min="0" step="0.01" value={productDraft.originalPrice} onChange={(event) => updateProductDraft('originalPrice', event.target.value)} className={field} /></label><label className="space-y-1 text-sm font-medium text-gray-700">Stock count<input required type="number" min="0" step="1" value={productDraft.stockCount} onChange={(event) => updateProductDraft('stockCount', event.target.value)} className={field} /></label><label className="space-y-1 text-sm font-medium text-gray-700">Warranty<input value={productDraft.warranty} onChange={(event) => updateProductDraft('warranty', event.target.value)} className={field} /></label><label className="space-y-1 text-sm font-medium text-gray-700 sm:col-span-2">Main image URL<input type="url" value={productDraft.imageUrl} onChange={(event) => updateProductDraft('imageUrl', event.target.value)} placeholder="Leave blank to remove the image" className={field} /></label>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1 text-sm font-medium text-gray-700">Short description<textarea rows={3} value={productDraft.shortDescription} onChange={(event) => updateProductDraft('shortDescription', event.target.value)} className={field} /></label><label className="space-y-1 text-sm font-medium text-gray-700">Full description<textarea rows={3} value={productDraft.description} onChange={(event) => updateProductDraft('description', event.target.value)} className={field} /></label></div>
+                  <div className="flex flex-wrap gap-5 text-sm text-gray-600"><label><input type="checkbox" checked={productDraft.featured} onChange={(event) => updateProductDraft('featured', event.target.checked)} className="mr-2" />Featured</label><label><input type="checkbox" checked={productDraft.bestseller} onChange={(event) => updateProductDraft('bestseller', event.target.checked)} className="mr-2" />Bestseller</label><label><input type="checkbox" checked={productDraft.isNew} onChange={(event) => updateProductDraft('isNew', event.target.checked)} className="mr-2" />New product</label></div>
+                  <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end"><button type="button" onClick={() => { setEditingProduct(null); setProductDraft(null); }} className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button><button disabled={savingProduct} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">{savingProduct ? 'Saving…' : 'Save changes'}</button></div>
+                </form>
+              </section>
+            </div>}
           </section>
         )}
 
