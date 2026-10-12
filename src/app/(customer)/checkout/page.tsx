@@ -15,8 +15,6 @@ import { couponService, orderService } from '@/lib/services/shopService';
 import { notify } from '@/components/ui/toast';
 import { useIsAuthenticated, useIsClient } from '@/lib/authState';
 
-const STRIPE_ENABLED = process.env.NEXT_PUBLIC_STRIPE_ENABLED === 'true';
-
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, getSubtotal, couponDiscount, couponCode, applyCoupon, removeCoupon, clearCart, hasHydrated } = useCartStore();
@@ -234,15 +232,15 @@ export default function CheckoutPage() {
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => (STRIPE_ENABLED ? setPaymentMethod('stripe') : notify.info('Coming soon', 'Card payment will be available soon.'))}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (STRIPE_ENABLED) setPaymentMethod('stripe'); else notify.info('Coming soon', 'Card payment will be available soon.'); } }}
+                  onClick={() => setPaymentMethod('stripe')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPaymentMethod('stripe'); } }}
                   className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 p-4 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${paymentMethod === 'stripe' ? 'border-indigo-600 bg-indigo-50/50' : 'border-gray-200 hover:border-indigo-200'}`}
                 >
                   <div className="mb-3 flex h-12 w-32 items-center justify-center overflow-hidden rounded-lg bg-white p-2">
                     <Image src="/stripe-logo.png" alt="Stripe" width={128} height={48} className="h-full w-full object-contain" />
                   </div>
                   <span className="font-bold text-gray-900">Card Payment (Stripe)</span>
-                  <span className="text-xs font-medium text-gray-500">{STRIPE_ENABLED ? 'Charged in USD at checkout' : 'Coming soon'}</span>
+                  <span className="text-xs font-medium text-gray-500">Charged in USD at checkout</span>
                 </div>
               </RadioGroup>
             </div>
